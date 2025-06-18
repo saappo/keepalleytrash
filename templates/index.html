@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Keep Alley Trash - Home{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row justify-content-center mb-5">
+    <div class="col-md-10 text-center">
+        <h1 class="display-4 mb-4">Keep Our Alleys Clean</h1>
+        <p class="lead mb-4">Join our community in making our neighborhoods cleaner and more beautiful. Together, we can make a difference.</p>
+        <a href="{{ url_for('submit_suggestion') }}" class="btn btn-primary btn-lg">Submit a Suggestion</a>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-lightbulb display-4 text-primary mb-3"></i>
+                <h3 class="h4">Share Ideas</h3>
+                <p class="card-text">Submit your suggestions for improving our community's cleanliness and maintenance.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-people display-4 text-primary mb-3"></i>
+                <h3 class="h4">Community Driven</h3>
+                <p class="card-text">Work together with neighbors to identify and address areas that need attention.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-4 text-primary mb-3"></i>
+                <h3 class="h4">Make an Impact</h3>
+                <p class="card-text">See your suggestions come to life as we work to implement approved improvements.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Section -->
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="text-center mb-4">How It Works</h2>
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex mb-4">
+                    <div class="flex-shrink-0">
+                        <span class="badge bg-primary rounded-circle p-3">1</span>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="h5">Submit Your Suggestion</h4>
+                        <p class="mb-0">Fill out our simple form with details about your suggestion, including location and description.</p>
+                    </div>
+                </div>
+                <div class="d-flex mb-4">
+                    <div class="flex-shrink-0">
+                        <span class="badge bg-primary rounded-circle p-3">2</span>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="h5">Community Review</h4>
+                        <p class="mb-0">Your suggestion will be reviewed and considered by our community team.</p>
+                    </div>
+                </div>
+                <div class="d-flex">
+                    <div class="flex-shrink-0">
+                        <span class="badge bg-primary rounded-circle p-3">3</span>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="h5">Implementation</h4>
+                        <p class="mb-0">Approved suggestions will be implemented, and you'll be notified of the progress.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
