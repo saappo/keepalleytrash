@@ -294,6 +294,10 @@ app.get('/cleanup', (req, res) => {
   res.render('cleanup', { user: req.session.user });
 });
 
+app.get('/about', (req, res) => {
+  res.render('about', { user: req.session.user });
+});
+
 app.get('/submit', requireAuth, (req, res) => {
   res.render('submit', { user: req.session.user, errors: [] });
 });
