@@ -1,0 +1,52 @@
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white text-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-envelope me-2"></i>Subscribe to Our Newsletter
+                </h4>
+            </div>
+            <div class="card-body text-center">
+                <p class="lead mb-4">Stay updated with the latest community news, cleanup events, and neighborhood improvements!</p>
+                
+                {{#if errors}}
+                    {{#each errors}}
+                        <div class="alert alert-danger">{{msg}}</div>
+                    {{/each}}
+                {{/if}}
+                
+                <form method="POST" action="/subscribe">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{formData.email}}" placeholder="Enter your email address" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-paper-plane me-2"></i>Subscribe Now
+                        </button>
+                    </div>
+                </form>
+                
+                <hr>
+                
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <i class="fas fa-bell fa-2x text-success mb-2"></i>
+                        <h6>Stay Informed</h6>
+                        <p class="small text-muted">Get notified about important updates</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-calendar fa-2x text-success mb-2"></i>
+                        <h6>Event Reminders</h6>
+                        <p class="small text-muted">Never miss a cleanup event</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-users fa-2x text-success mb-2"></i>
+                        <h6>Community News</h6>
+                        <p class="small text-muted">Latest neighborhood happenings</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

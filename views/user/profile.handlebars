@@ -1,0 +1,77 @@
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-user me-2"></i>User Profile
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-user-circle fa-5x text-success"></i>
+                        </div>
+                        <h5>{{user.username}}</h5>
+                        {{#if user.isAdmin}}
+                            <span class="badge bg-warning">Administrator</span>
+                        {{else}}
+                            <span class="badge bg-success">Community Member</span>
+                        {{/if}}
+                    </div>
+                    <div class="col-md-8">
+                        <div class="row mb-3">
+                            <div class="col-sm-4">
+                                <strong>Username:</strong>
+                            </div>
+                            <div class="col-sm-8">
+                                {{user.username}}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4">
+                                <strong>Email:</strong>
+                            </div>
+                            <div class="col-sm-8">
+                                {{user.email}}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4">
+                                <strong>Neighborhood:</strong>
+                            </div>
+                            <div class="col-sm-8">
+                                {{#if user.neighborhood}}
+                                    {{user.neighborhood}}
+                                {{else}}
+                                    <span class="text-muted">Not specified</span>
+                                {{/if}}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4">
+                                <strong>Member Since:</strong>
+                            </div>
+                            <div class="col-sm-8">
+                                {{formatDate user.created_at}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="/home" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Home
+                    </a>
+                    {{#if user.isAdmin}}
+                        <a href="/admin/dashboard" class="btn btn-warning">
+                            <i class="fas fa-cog me-2"></i>Admin Dashboard
+                        </a>
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

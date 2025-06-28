@@ -1,0 +1,49 @@
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Submit Suggestion
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">Share your ideas for improving our community! Your suggestions help make our neighborhood a better place.</p>
+                
+                {{#if errors}}
+                    {{#each errors}}
+                        <div class="alert alert-danger">{{msg}}</div>
+                    {{/each}}
+                {{/if}}
+                
+                <form method="POST" action="/submit_suggestion">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Suggestion Title</label>
+                        <input type="text" class="form-control" id="title" name="title" value="{{formData.title}}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="">Select a category</option>
+                            <option value="cleanup" {{#if (eq formData.category 'cleanup')}}selected{{/if}}>Cleanup Initiative</option>
+                            <option value="safety" {{#if (eq formData.category 'safety')}}selected{{/if}}>Safety Improvement</option>
+                            <option value="community" {{#if (eq formData.category 'community')}}selected{{/if}}>Community Event</option>
+                            <option value="other" {{#if (eq formData.category 'other')}}selected{{/if}}>Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="6" placeholder="Describe your suggestion in detail..." required>{{formData.description}}</textarea>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="/suggestions" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-paper-plane me-2"></i>Submit Suggestion
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div> 

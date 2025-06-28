@@ -1,0 +1,71 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-list text-success me-2"></i>Manage Posts
+    </h2>
+    <a href="/admin/dashboard" class="btn btn-outline-success">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+</div>
+
+{{#if posts}}
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-comments me-2"></i>All Community Posts
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Category</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each posts}}
+                            <tr>
+                                <td>
+                                    <strong>{{title}}</strong>
+                                    <br>
+                                    <small class="text-muted">{{truncate content 50}}</small>
+                                </td>
+                                <td>{{username}}</td>
+                                <td>
+                                    <span class="badge bg-{{#if (eq category 'cleanup')}}success{{else if (eq category 'issue')}}danger{{else if (eq category 'announcement')}}warning{{else}}secondary{{/if}}">
+                                        {{category}}
+                                    </span>
+                                </td>
+                                <td>{{formatDate created_at}}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deletePost({{id}})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{{else}}
+    <div class="text-center py-5">
+        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">No posts found</h4>
+        <p class="text-muted">There are no community posts to manage.</p>
+    </div>
+{{/if}}
+
+<script>
+function deletePost(postId) {
+    if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+        // In a real application, you would make an AJAX call to delete the post
+        alert('Post deletion functionality would be implemented here.');
+    }
+}
+</script> 

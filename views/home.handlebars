@@ -1,0 +1,140 @@
+<div class="row">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-home text-success me-2"></i>Welcome to Your Community
+            </h2>
+            {{#if user}}
+                <a href="/submit" class="btn btn-success">
+                    <i class="fas fa-plus me-2"></i>New Post
+                </a>
+            {{/if}}
+        </div>
+
+        {{#if posts}}
+            <h4 class="mb-3">Recent Community Posts</h4>
+            {{#each posts}}
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title">{{title}}</h5>
+                            <span class="badge bg-{{#if (eq category 'cleanup')}}success{{else if (eq category 'issue')}}danger{{else if (eq category 'announcement')}}warning{{else}}secondary{{/if}}">
+                                {{category}}
+                            </span>
+                        </div>
+                        <p class="card-text">{{content}}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>{{username}} • 
+                                <i class="fas fa-clock me-1"></i>{{formatDate created_at}}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            {{/each}}
+            <div class="text-center mt-4">
+                <a href="/community" class="btn btn-outline-success">
+                    <i class="fas fa-comments me-2"></i>View All Posts
+                </a>
+            </div>
+        {{else}}
+            <div class="text-center py-5">
+                <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No posts yet</h4>
+                <p class="text-muted">Be the first to start a conversation in your community!</p>
+                {{#if user}}
+                    <a href="/submit" class="btn btn-success">
+                        <i class="fas fa-plus me-2"></i>Create First Post
+                    </a>
+                {{else}}
+                    <a href="/login" class="btn btn-success">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login to Post
+                    </a>
+                {{/if}}
+            </div>
+        {{/if}}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>City of Dallas Alert
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="small mb-2">
+                    <strong>City of Dallas may end alley trash collection for 30,000+ households.</strong>
+                </p>
+                <div class="d-grid gap-2">
+                    <a href="https://www.dallasnews.com/news/politics/2025/06/18/dallas-sanitation-officials-again-propose-ending-some-alleyway-trash-pickups/" 
+                       target="_blank" class="btn btn-sm btn-outline-warning">
+                        <i class="fas fa-newspaper me-1"></i>Dallas Morning News
+                    </a>
+                    <a href="https://lakewood.advocatemag.com/city-pauses-plan-to-end-alley-trash-pickup/" 
+                       target="_blank" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-check-circle me-1"></i>Community Victory
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {{#if user}}
+                        <a href="/submit" class="btn btn-outline-success">
+                            <i class="fas fa-plus me-2"></i>Create Post
+                        </a>
+                        <a href="/submit_suggestion" class="btn btn-outline-success">
+                            <i class="fas fa-lightbulb me-2"></i>Submit Suggestion
+                        </a>
+                        <a href="/suggestions" class="btn btn-outline-success">
+                            <i class="fas fa-list me-2"></i>View Suggestions
+                        </a>
+                    {{else}}
+                        <a href="/register" class="btn btn-success">
+                            <i class="fas fa-user-plus me-2"></i>Join Community
+                        </a>
+                        <a href="/login" class="btn btn-outline-success">
+                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                        </a>
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Community Guidelines
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>Be respectful to neighbors
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>Share relevant information
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>Report issues promptly
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>Participate in cleanup events
+                    </li>
+                </ul>
+                <hr>
+                <a href="/guidelines" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-book me-1"></i>Read Full Guidelines
+                </a>
+            </div>
+        </div>
+    </div>
+</div> 

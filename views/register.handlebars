@@ -1,0 +1,51 @@
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white text-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-plus me-2"></i>Join Our Community
+                </h4>
+            </div>
+            <div class="card-body">
+                {{#if errors}}
+                    {{#each errors}}
+                        <div class="alert alert-danger">{{msg}}</div>
+                    {{/each}}
+                {{/if}}
+                
+                <form method="POST" action="/register">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" value="{{formData.username}}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{formData.email}}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="neighborhood" class="form-label">Neighborhood (Optional)</label>
+                        <input type="text" class="form-control" id="neighborhood" name="neighborhood" value="{{formData.neighborhood}}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-user-plus me-2"></i>Create Account
+                        </button>
+                    </div>
+                </form>
+                
+                <hr>
+                <div class="text-center">
+                    <p class="mb-0">Already have an account? <a href="/login" class="text-success">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

@@ -1,0 +1,64 @@
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-envelope me-2"></i>Contact Us
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">Have a question, suggestion, or need to report an issue? We'd love to hear from you!</p>
+                
+                {{#if errors}}
+                    {{#each errors}}
+                        <div class="alert alert-danger">{{msg}}</div>
+                    {{/each}}
+                {{/if}}
+                
+                <form method="POST" action="/contact">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{formData.name}}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{formData.email}}" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="subject" name="subject" value="{{formData.subject}}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea class="form-control" id="message" name="message" rows="6" required>{{formData.message}}</textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-paper-plane me-2"></i>Send Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4 text-center">
+        <i class="fas fa-map-marker-alt fa-2x text-success mb-3"></i>
+        <h5>Location</h5>
+        <p class="text-muted">Your Neighborhood</p>
+    </div>
+    <div class="col-md-4 text-center">
+        <i class="fas fa-envelope fa-2x text-success mb-3"></i>
+        <h5>Email</h5>
+        <p class="text-muted">contact@keepalleytrash.com</p>
+    </div>
+    <div class="col-md-4 text-center">
+        <i class="fas fa-clock fa-2x text-success mb-3"></i>
+        <h5>Response Time</h5>
+        <p class="text-muted">Within 24 hours</p>
+    </div>
+</div> 

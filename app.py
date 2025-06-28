@@ -1,22 +1,25 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from datetime import datetime
-import os
-from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mail import Mail, Message
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, TextAreaField, SelectField, SubmitField
+from wtforms.validators import DataRequired, Email, Length, EqualTo
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
+from datetime import datetime
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///keepalleytrash.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Email configuration
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # You'll need to update this with your email provider
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER')  # Set this in your environment
-app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASSWORD')  # Set this in your environment
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 
 db = SQLAlchemy(app)
 mail = Mail(app)
@@ -24,43 +27,95 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Models
+# Database Models
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))
+    password_hash = db.Column(db.String(120), nullable=False)
     neighborhood = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_admin = db.Column(db.Boolean, default=False)
+    
     posts = db.relationship('Post', backref='author', lazy=True)
-    subscriptions = db.relationship('Subscription', backref='user', lazy=True)
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-class Subscription(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    neighborhood = db.Column(db.String(100))
-    is_active = db.Column(db.Boolean, default=True)
-    date_subscribed = db.Column(db.DateTime, default=datetime.utcnow)
-    preferences = db.Column(db.String(200))  # JSON string for notification preferences
+    suggestions = db.relationship('Suggestion', backref='author', lazy=True)
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    category = db.Column(db.String(50))  # e.g., 'update', 'event', 'alert'
-    is_published = db.Column(db.Boolean, default=True)
-    is_featured = db.Column(db.Boolean, default=False)
-    event_date = db.Column(db.DateTime, nullable=True)  # For event posts
-    location = db.Column(db.String(200), nullable=True)  # For event posts
+    category = db.Column(db.String(50), default='general')
+
+class Suggestion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(20), default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+class Contact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    subject = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Subscriber(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    subscribed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Forms
+class RegistrationForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    neighborhood = StringField('Neighborhood')
+    submit = SubmitField('Register')
+
+class LoginForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Login')
+
+class PostForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    content = TextAreaField('Content', validators=[DataRequired()])
+    category = SelectField('Category', choices=[
+        ('general', 'General'),
+        ('cleanup', 'Cleanup Event'),
+        ('issue', 'Issue Report'),
+        ('announcement', 'Announcement')
+    ])
+    submit = SubmitField('Post')
+
+class SuggestionForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    description = TextAreaField('Description', validators=[DataRequired()])
+    category = SelectField('Category', choices=[
+        ('cleanup', 'Cleanup Initiative'),
+        ('safety', 'Safety Improvement'),
+        ('community', 'Community Event'),
+        ('other', 'Other')
+    ])
+    submit = SubmitField('Submit Suggestion')
+
+class ContactForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    subject = StringField('Subject', validators=[DataRequired()])
+    message = TextAreaField('Message', validators=[DataRequired()])
+    submit = SubmitField('Send Message')
+
+class SubscribeForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Subscribe')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -68,64 +123,55 @@ def load_user(user_id):
 
 # Routes
 @app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/welcome')
+def welcome():
+    return render_template('welcome.html')
+
+@app.route('/home')
 def home():
-    featured_posts = Post.query.filter_by(is_featured=True, is_published=True).order_by(Post.date_posted.desc()).limit(3).all()
-    return render_template('home.html', posts=featured_posts)
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-@app.route('/community')
-def community():
-    posts = Post.query.order_by(Post.date_posted.desc()).all()
-    return render_template('community.html', posts=posts)
-
-@app.route('/guidelines')
-def guidelines():
-    return render_template('guidelines.html')
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        # Add login logic here
-        pass
-    return render_template('login.html')
+    recent_posts = Post.query.order_by(Post.created_at.desc()).limit(5).all()
+    return render_template('home.html', posts=recent_posts)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        neighborhood = request.form.get('neighborhood')
-
-        # Basic validation
-        if not username or not email or not password:
-            flash('Please fill out all required fields.', 'danger')
-            return render_template('register.html')
-
-        # Check if username or email already exists
-        if User.query.filter_by(username=username).first():
-            flash('Username already taken.', 'danger')
-            return render_template('register.html')
-        if User.query.filter_by(email=email).first():
-            flash('Email already registered.', 'danger')
-            return render_template('register.html')
-
-        # Create new user
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        hashed_password = generate_password_hash(form.password.data)
         user = User(
-            username=username,
-            email=email,
-            neighborhood=neighborhood
+            username=form.username.data,
+            email=form.email.data,
+            password_hash=hashed_password,
+            neighborhood=form.neighborhood.data
         )
-        user.set_password(password)
         db.session.add(user)
         db.session.commit()
-        login_user(user)
-        flash('Registration successful! Welcome to Keep Alley Trash.', 'success')
+        flash('Account created successfully! You can now log in.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html', form=form)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
         return redirect(url_for('home'))
-    return render_template('register.html')
+    
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and check_password_hash(user.password_hash, form.password.data):
+            login_user(user)
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('home'))
+        else:
+            flash('Login failed. Please check your email and password.', 'danger')
+    
+    return render_template('login.html', form=form)
 
 @app.route('/logout')
 @login_required
@@ -133,137 +179,174 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
+@app.route('/community')
+def community():
+    posts = Post.query.order_by(Post.created_at.desc()).all()
+    return render_template('community.html', posts=posts)
+
+@app.route('/submit', methods=['GET', 'POST'])
+@login_required
+def submit():
+    form = PostForm()
+    if form.validate_on_submit():
+        post = Post(
+            title=form.title.data,
+            content=form.content.data,
+            category=form.category.data,
+            author=current_user
+        )
+        db.session.add(post)
+        db.session.commit()
+        flash('Post created successfully!', 'success')
+        return redirect(url_for('community'))
+    
+    return render_template('submit.html', form=form)
+
+@app.route('/suggestions')
+def suggestions():
+    suggestions = Suggestion.query.order_by(Suggestion.created_at.desc()).all()
+    return render_template('suggestions.html', suggestions=suggestions)
+
+@app.route('/submit_suggestion', methods=['GET', 'POST'])
+@login_required
+def submit_suggestion():
+    form = SuggestionForm()
+    if form.validate_on_submit():
+        suggestion = Suggestion(
+            title=form.title.data,
+            description=form.description.data,
+            category=form.category.data,
+            author=current_user
+        )
+        db.session.add(suggestion)
+        db.session.commit()
+        flash('Suggestion submitted successfully!', 'success')
+        return redirect(url_for('suggestions'))
+    
+    return render_template('submit_suggestion.html', form=form)
+
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    form = ContactForm()
+    if form.validate_on_submit():
+        contact = Contact(
+            name=form.name.data,
+            email=form.email.data,
+            subject=form.subject.data,
+            message=form.message.data
+        )
+        db.session.add(contact)
+        db.session.commit()
+        
+        # Send email notification (if configured)
+        if app.config['MAIL_USERNAME']:
+            try:
+                msg = Message(
+                    f'New Contact Form Submission: {form.subject.data}',
+                    sender=form.email.data,
+                    recipients=[app.config['MAIL_USERNAME']]
+                )
+                msg.body = f"""
+                Name: {form.name.data}
+                Email: {form.email.data}
+                Subject: {form.subject.data}
+                Message: {form.message.data}
+                """
+                mail.send(msg)
+            except Exception as e:
+                print(f"Email sending failed: {e}")
+        
+        flash('Message sent successfully! We will get back to you soon.', 'success')
+        return redirect(url_for('contact'))
+    
+    return render_template('contact.html', form=form)
+
 @app.route('/subscribe', methods=['GET', 'POST'])
 def subscribe():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        neighborhood = request.form.get('neighborhood')
-        
-        if not email:
-            flash('Email is required', 'danger')
-            return redirect(url_for('subscribe'))
-        
-        # Check if email already exists
-        existing = Subscription.query.filter_by(email=email).first()
+    form = SubscribeForm()
+    if form.validate_on_submit():
+        # Check if already subscribed
+        existing = Subscriber.query.filter_by(email=form.email.data).first()
         if existing:
-            if not existing.is_active:
-                existing.is_active = True
-                db.session.commit()
-                flash('Welcome back! Your subscription has been reactivated.', 'success')
-            else:
-                flash('You are already subscribed!', 'info')
-            return redirect(url_for('home'))
-        
-        # Create new subscription
-        subscription = Subscription(
-            email=email,
-            neighborhood=neighborhood,
-            is_active=True
-        )
-        
-        try:
-            db.session.add(subscription)
+            flash('You are already subscribed!', 'info')
+        else:
+            subscriber = Subscriber(email=form.email.data)
+            db.session.add(subscriber)
             db.session.commit()
-            flash('Thank you for subscribing! You will receive updates about alley collection services.', 'success')
-            
-            # Send welcome email
-            msg = Message(
-                'Welcome to Keep Alley Trash Updates',
-                sender=app.config['MAIL_USERNAME'],
-                recipients=[email]
-            )
-            msg.body = f'''Welcome to Keep Alley Trash Updates!
-
-Thank you for subscribing to receive updates about alley collection services in Dallas.
-
-You will receive:
-- Important updates about alley collection services
-- Community event notifications
-- Maintenance reminders
-- Ways to get involved
-
-To unsubscribe, simply reply to this email with "UNSUBSCRIBE" in the subject line.
-
-Best regards,
-Keep Alley Trash Team
-'''
-            mail.send(msg)
-            
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred. Please try again.', 'danger')
-            
+            flash('Successfully subscribed to our newsletter!', 'success')
         return redirect(url_for('home'))
-        
-    return render_template('subscribe.html')
+    
+    return render_template('subscribe.html', form=form)
 
-@app.route('/unsubscribe/<email>')
-def unsubscribe(email):
-    subscription = Subscription.query.filter_by(email=email).first()
-    if subscription:
-        subscription.is_active = False
-        db.session.commit()
-        flash('You have been unsubscribed from our updates.', 'info')
-    else:
-        flash('Subscription not found.', 'danger')
-    return redirect(url_for('home'))
+@app.route('/guidelines')
+def guidelines():
+    return render_template('guidelines.html')
 
-@app.route('/admin/posts', methods=['GET', 'POST'])
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/profile')
 @login_required
-def manage_posts():
+def profile():
+    return render_template('user/profile.html')
+
+# Admin routes
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
     if not current_user.is_admin:
-        flash('Access denied.', 'danger')
+        flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('home'))
-        
-    if request.method == 'POST':
-        title = request.form.get('title')
-        content = request.form.get('content')
-        category = request.form.get('category')
-        is_featured = bool(request.form.get('is_featured'))
-        event_date = request.form.get('event_date')
-        location = request.form.get('location')
-        
-        post = Post(
-            title=title,
-            content=content,
-            category=category,
-            is_featured=is_featured,
-            user_id=current_user.id,
-            event_date=datetime.strptime(event_date, '%Y-%m-%d') if event_date else None,
-            location=location
-        )
-        
-        try:
-            db.session.add(post)
-            db.session.commit()
-            
-            # Send email to all active subscribers
-            subscribers = Subscription.query.filter_by(is_active=True).all()
-            if subscribers:
-                msg = Message(
-                    f'New Update: {title}',
-                    sender=app.config['MAIL_USERNAME'],
-                    recipients=[s.email for s in subscribers]
-                )
-                msg.body = f'''New Update from Keep Alley Trash:
+    
+    users_count = User.query.count()
+    posts_count = Post.query.count()
+    suggestions_count = Suggestion.query.count()
+    contacts_count = Contact.query.count()
+    
+    return render_template('admin/dashboard.html', 
+                         users_count=users_count,
+                         posts_count=posts_count,
+                         suggestions_count=suggestions_count,
+                         contacts_count=contacts_count)
 
-{title}
-
-{content}
-
-To unsubscribe, visit: {url_for('unsubscribe', email='{email}', _external=True)}
-'''
-                mail.send(msg)
-            
-            flash('Post created and subscribers notified!', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash('Error creating post.', 'danger')
-            
-    posts = Post.query.order_by(Post.date_posted.desc()).all()
+@app.route('/admin/posts')
+@login_required
+def admin_posts():
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('home'))
+    
+    posts = Post.query.order_by(Post.created_at.desc()).all()
     return render_template('admin/posts.html', posts=posts)
 
-if __name__ == '__main__':
+# Error handlers
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('errors/error.html', error_code=404, error_message="Page not found"), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return render_template('errors/error.html', error_code=500, error_message="Internal server error"), 500
+
+# Create database tables
+def create_tables():
     with app.app_context():
         db.create_all()
-    app.run(host='0.0.0.0', port=8080, debug=True) 
+        
+        # Create admin user if none exists
+        admin = User.query.filter_by(is_admin=True).first()
+        if not admin:
+            admin = User(
+                username='admin',
+                email='admin@keepalleytrash.com',
+                password_hash=generate_password_hash('admin123'),
+                is_admin=True
+            )
+            db.session.add(admin)
+            db.session.commit()
+
+if __name__ == '__main__':
+    create_tables()
+    app.run(debug=True, port=8080) 
