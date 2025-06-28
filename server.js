@@ -410,10 +410,10 @@ app.post('/contact', [
       }
 
       // Send email notification if configured
-      if (transporter && process.env.MAIL_USERNAME) {
+      if (transporter) {
         const mailOptions = {
           from: email,
-          to: process.env.MAIL_USERNAME,
+          to: 'info@saappo.com',
           subject: `New Contact Form Submission: ${subject}`,
           text: `
             Name: ${name}
