@@ -298,6 +298,10 @@ app.get('/about', (req, res) => {
   res.render('about', { user: req.session.user });
 });
 
+app.get('/considerations', (req, res) => {
+  res.render('considerations', { user: req.session.user });
+});
+
 app.get('/submit', requireAuth, (req, res) => {
   res.render('submit', { user: req.session.user, errors: [] });
 });
