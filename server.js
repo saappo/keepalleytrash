@@ -13,7 +13,15 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Database setup
-const db = new sqlite3.Database('./keepalleytrash.db');
+const dbPath = process.env.NODE_ENV === 'production' ? ':memory:' : './keepalleytrash.db';
+console.log(`Using database: ${dbPath}`);
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Database connection error:', err);
+  } else {
+    console.log('Database connected successfully');
+  }
+});
 
 // Create tables if they don't exist
 db.serialize(() => {
@@ -147,7 +155,13 @@ if (process.env.MAIL_USERNAME && process.env.MAIL_PASSWORD) {
 
 // Routes
 app.get('/', (req, res) => {
-  res.render('index', { user: req.session.user });
+  console.log('Home route accessed');
+  try {
+    res.render('index', { user: req.session.user });
+  } catch (error) {
+    console.error('Error rendering index:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 app.get('/welcome', (req, res) => {
