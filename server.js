@@ -157,7 +157,10 @@ if (process.env.MAIL_USERNAME && process.env.MAIL_PASSWORD) {
 app.get('/', (req, res) => {
   console.log('Home route accessed');
   try {
-    res.render('index', { user: req.session.user });
+    res.render('index', { 
+      user: req.session.user,
+      lastUpdated: new Date()
+    });
   } catch (error) {
     console.error('Error rendering index:', error);
     res.status(500).send('Internal Server Error');

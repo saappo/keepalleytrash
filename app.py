@@ -6,6 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, TextAreaField, SelectField, SubmitField
 from wtforms.validators import DataRequired, Email, Length, EqualTo
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_moment import Moment
 import os
 from datetime import datetime
 
@@ -23,6 +24,7 @@ app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 
 db = SQLAlchemy(app)
 mail = Mail(app)
+moment = Moment(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -124,7 +126,7 @@ def load_user(user_id):
 # Routes
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', lastUpdated=datetime.utcnow())
 
 @app.route('/welcome')
 def welcome():
@@ -282,9 +284,17 @@ def subscribe():
 def guidelines():
     return render_template('guidelines.html')
 
+@app.route('/cleanup')
+def cleanup():
+    return render_template('cleanup.html')
+
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+@app.route('/considerations')
+def considerations():
+    return render_template('considerations.html')
 
 @app.route('/profile')
 @login_required
