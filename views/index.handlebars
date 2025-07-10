@@ -32,29 +32,57 @@
   </div>
 </div>
 
+<!-- Prominent Keep Alley Trash Section -->
+<div class="keep-alley-trash-section py-4 bg-success text-white">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 text-center">
+                <h1 class="display-3 fw-bold mb-3">
+                    <i class="fas fa-recycle me-3"></i>
+                    KEEP ALLEY TRASH
+                </h1>
+                <p class="lead mb-4 fs-4">
+                    <strong>Empowering local action to preserve alley trash service.</strong>
+                </p>
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <p class="mb-4 fs-5">
+                            Join thousands of Dallas residents fighting to maintain alley trash collection services. 
+                            Our neighborhoods were designed for alley service - let's keep it that way.
+                        </p>
+                    </div>
+                </div>
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            {{#if user}}
+                                <a href="/home" class="btn btn-light btn-lg me-md-2">
+                                    <i class="fas fa-home me-2"></i>Go to Dashboard
+                                </a>
+                            {{else}}
+                                <a href="/register" class="btn btn-light btn-lg me-md-2">
+                                    <i class="fas fa-user-plus me-2"></i>Join Our Community
+                                </a>
+                                <a href="/login" class="btn btn-outline-light btn-lg">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                                </a>
+                            {{/if}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="hero-section text-center py-5">
     <div class="container">
-        <h1 class="display-4 mb-4">
-            <i class="fas fa-recycle text-success me-3"></i>
-            Keep Alley Trash
-        </h1>
-        <p class="lead mb-4"><strong>Empowering local action to preserve alley trash service.</strong></p>
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                    {{#if user}}
-                        <a href="/home" class="btn btn-success btn-lg me-md-2">
-                            <i class="fas fa-home me-2"></i>Go to Dashboard
-                        </a>
-                    {{else}}
-                        <a href="/register" class="btn btn-success btn-lg me-md-2">
-                            <i class="fas fa-user-plus me-2"></i>Join Our Community
-                        </a>
-                        <a href="/login" class="btn btn-outline-success btn-lg">
-                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                        </a>
-                    {{/if}}
-                </div>
+                <p class="lead mb-4">
+                    Join thousands of Dallas residents fighting to maintain alley trash collection services. 
+                    Our neighborhoods were designed for alley service - let's keep it that way.
+                </p>
             </div>
         </div>
     </div>
@@ -154,6 +182,10 @@
                     </div>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
+                    <a href="https://dallascityhall.com/departments/sanitation/Pages/curbtransition.aspx#:~:text=Approximately%2026%2C000%20customer%20locations%20will,is%20a%20tiered%20rate%20structure?" 
+                       target="_blank" class="btn btn-primary">
+                        <i class="fas fa-bullhorn me-2"></i>City of Dallas Official Announcement
+                    </a>
                     <a href="https://www.dallasnews.com/news/politics/2025/06/18/dallas-sanitation-officials-again-propose-ending-some-alleyway-trash-pickups/" 
                        target="_blank" class="btn btn-warning">
                         <i class="fas fa-newspaper me-2"></i>Read Dallas Morning News Article
