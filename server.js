@@ -173,7 +173,7 @@ app.use(express.static('static'));
 app.use((req, res, next) => {
   if (!dbReady) {
     return res.status(503).render('errors/error', { 
-      user: req.session.user,
+      user: req.session ? req.session.user : null,
       error_code: 503, 
       error_message: "Database is initializing, please try again in a moment" 
     });
@@ -292,7 +292,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/welcome', (req, res) => {
-  res.render('welcome', { user: req.session.user });
+  res.render('welcome', { user: req.session ? req.session.user : null });
 });
 
 app.get('/home', (req, res) => {
@@ -301,15 +301,15 @@ app.get('/home', (req, res) => {
       console.error(err);
       posts = [];
     }
-    res.render('home', { posts, user: req.session.user });
+    res.render('home', { posts, user: req.session ? req.session.user : null });
   });
 });
 
 app.get('/register', (req, res) => {
-  if (req.session.userId) {
+  if (req.session && req.session.userId) {
     return res.redirect('/home');
   }
-  res.render('register', { user: req.session.user, errors: [] });
+  res.render('register', { user: req.session ? req.session.user : null, errors: [] });
 });
 
 app.post('/register', [
@@ -391,10 +391,10 @@ app.post('/register', [
 });
 
 app.get('/login', (req, res) => {
-  if (req.session.userId) {
+  if (req.session && req.session.userId) {
     return res.redirect('/home');
   }
-  res.render('login', { user: req.session.user, errors: [] });
+  res.render('login', { user: req.session ? req.session.user : null, errors: [] });
 });
 
 app.post('/login', [
@@ -479,7 +479,7 @@ app.get('/community', (req, res) => {
       console.error(err);
       posts = [];
     }
-    res.render('community', { posts, user: req.session.user });
+    res.render('community', { posts, user: req.session ? req.session.user : null });
   });
 });
 
@@ -524,13 +524,13 @@ app.get('/considerations', (req, res) => {
 
 app.get('/guidelines', (req, res) => {
   res.render('guidelines', { 
-    user: req.session.user,
+    user: req.session ? req.session.user : null,
     lastUpdated: new Date()
   });
 });
 
 app.get('/submit', requireAuth, (req, res) => {
-  res.render('submit', { user: req.session.user, errors: [] });
+  res.render('submit', { user: req.session ? req.session.user : null, errors: [] });
 });
 
 app.post('/submit', requireAuth, [
@@ -587,7 +587,7 @@ app.get('/suggestions', (req, res) => {
 });
 
 app.get('/submit_suggestion', requireAuth, (req, res) => {
-  res.render('submit_suggestion', { user: req.session.user, errors: [] });
+  res.render('submit_suggestion', { user: req.session ? req.session.user : null, errors: [] });
 });
 
 app.post('/submit_suggestion', requireAuth, [
@@ -623,7 +623,7 @@ app.post('/submit_suggestion', requireAuth, [
 });
 
 app.get('/contact', (req, res) => {
-  res.render('contact', { user: req.session.user, errors: [] });
+  res.render('contact', { user: req.session ? req.session.user : null, errors: [] });
 });
 
 app.post('/contact', [
@@ -682,7 +682,7 @@ app.post('/contact', [
 });
 
 app.get('/subscribe', (req, res) => {
-  res.render('subscribe', { user: req.session.user, errors: [] });
+  res.render('subscribe', { user: req.session ? req.session.user : null, errors: [] });
 });
 
 app.post('/subscribe', [
@@ -728,7 +728,7 @@ app.post('/subscribe', [
 });
 
 app.get('/profile', requireAuth, (req, res) => {
-  res.render('user/profile', { user: req.session.user });
+  res.render('user/profile', { user: req.session ? req.session.user : null });
 });
 
 // Admin routes
@@ -756,7 +756,7 @@ app.get('/admin/posts', requireAdmin, (req, res) => {
       console.error(err);
       posts = [];
     }
-    res.render('admin/posts', { posts, user: req.session.user });
+    res.render('admin/posts', { posts, user: req.session ? req.session.user : null });
   });
 });
 
