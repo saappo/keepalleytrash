@@ -316,8 +316,7 @@ app.get('/', (req, res) => {
   
   try {
     const renderData = { 
-      user: req.session ? req.session.user : null,
-      lastUpdated: new Date()
+      user: req.session ? req.session.user : null
     };
     console.log('Rendering index with data:', renderData);
     res.render('index', renderData);
