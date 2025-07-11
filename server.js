@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session);
 const exphbs = require('express-handlebars');
 const bcrypt = require('bcryptjs');
 const sqlite3 = require('sqlite3').verbose();
@@ -182,8 +183,13 @@ app.use((req, res, next) => {
 
 // Session configuration
 app.use(session({
+  store: new SQLiteStore({
+    db: 'sessions.db',
+    dir: process.env.NODE_ENV === 'production' ? '/tmp' : './',
+    table: 'sessions'
+  }),
   secret: process.env.SECRET_KEY || 'dev-secret-key-change-in-production',
-  resave: true,
+  resave: false,
   saveUninitialized: false,
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
