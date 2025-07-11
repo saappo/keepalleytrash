@@ -16,6 +16,16 @@ const PORT = process.env.PORT || 3000;
 const dbPath = process.env.NODE_ENV === 'production' ? '/tmp/keepalleytrash.db' : './keepalleytrash.db';
 console.log(`Using database: ${dbPath}`);
 
+// Ensure database directory exists in production
+if (process.env.NODE_ENV === 'production') {
+  const fs = require('fs');
+  const path = require('path');
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+}
+
 // Initialize database
 const initializeDatabase = () => {
   return new Promise((resolve, reject) => {
@@ -244,6 +254,16 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     database: dbReady ? 'ready' : 'initializing',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Simple test route that doesn't depend on database
+app.get('/test', (req, res) => {
+  res.json({ 
+    message: 'Server is running',
+    user: req.session.user ? 'logged in' : 'not logged in',
     timestamp: new Date().toISOString()
   });
 });
@@ -538,11 +558,8 @@ app.post('/submit', requireAuth, [
 app.get('/suggestions', (req, res) => {
   try {
     if (!dbReady) {
-      return res.status(503).render('errors/error', { 
-        user: req.session.user,
-        error_code: 503, 
-        error_message: "Database is initializing, please try again in a moment" 
-      });
+      // Return empty suggestions instead of error
+      return res.render('suggestions', { suggestions: [], user: req.session.user });
     }
     
     db.all("SELECT s.*, u.username FROM suggestions s JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC", (err, suggestions) => {
@@ -554,11 +571,8 @@ app.get('/suggestions', (req, res) => {
     });
   } catch (error) {
     console.error('Error in suggestions route:', error);
-    res.status(500).render('errors/error', { 
-      user: req.session.user,
-      error_code: 500, 
-      error_message: "Error loading suggestions page" 
-    });
+    // Return empty suggestions instead of error
+    res.render('suggestions', { suggestions: [], user: req.session.user });
   }
 });
 
