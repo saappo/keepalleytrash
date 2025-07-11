@@ -270,11 +270,12 @@ app.get('/test', (req, res) => {
 
 app.get('/', (req, res) => {
   console.log('Home route accessed');
-  console.log('User:', req.session.user);
+  console.log('Session:', req.session);
+  console.log('User:', req.session ? req.session.user : 'No session');
   console.log('Session ID:', req.sessionID);
   try {
     res.render('index', { 
-      user: req.session.user,
+      user: req.session ? req.session.user : null,
       lastUpdated: new Date()
     });
   } catch (error) {
@@ -478,11 +479,11 @@ app.get('/community', (req, res) => {
 
 app.get('/cleanup', (req, res) => {
   try {
-    res.render('cleanup', { user: req.session.user });
+    res.render('cleanup', { user: req.session ? req.session.user : null });
   } catch (error) {
     console.error('Error rendering cleanup page:', error);
     res.status(500).render('errors/error', { 
-      user: req.session.user,
+      user: req.session ? req.session.user : null,
       error_code: 500, 
       error_message: "Error loading cleanup page" 
     });
@@ -491,11 +492,11 @@ app.get('/cleanup', (req, res) => {
 
 app.get('/about', (req, res) => {
   try {
-    res.render('about', { user: req.session.user });
+    res.render('about', { user: req.session ? req.session.user : null });
   } catch (error) {
     console.error('Error rendering about page:', error);
     res.status(500).render('errors/error', { 
-      user: req.session.user,
+      user: req.session ? req.session.user : null,
       error_code: 500, 
       error_message: "Error loading about page" 
     });
@@ -504,11 +505,11 @@ app.get('/about', (req, res) => {
 
 app.get('/considerations', (req, res) => {
   try {
-    res.render('considerations', { user: req.session.user });
+    res.render('considerations', { user: req.session ? req.session.user : null });
   } catch (error) {
     console.error('Error rendering considerations page:', error);
     res.status(500).render('errors/error', { 
-      user: req.session.user,
+      user: req.session ? req.session.user : null,
       error_code: 500, 
       error_message: "Error loading considerations page" 
     });
@@ -562,7 +563,7 @@ app.get('/suggestions', (req, res) => {
   try {
     if (!dbReady) {
       // Return empty suggestions instead of error
-      return res.render('suggestions', { suggestions: [], user: req.session.user });
+      return res.render('suggestions', { suggestions: [], user: req.session ? req.session.user : null });
     }
     
     db.all("SELECT s.*, u.username FROM suggestions s JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC", (err, suggestions) => {
@@ -570,12 +571,12 @@ app.get('/suggestions', (req, res) => {
         console.error('Database error in suggestions route:', err);
         suggestions = [];
       }
-      res.render('suggestions', { suggestions, user: req.session.user });
+      res.render('suggestions', { suggestions, user: req.session ? req.session.user : null });
     });
   } catch (error) {
     console.error('Error in suggestions route:', error);
     // Return empty suggestions instead of error
-    res.render('suggestions', { suggestions: [], user: req.session.user });
+    res.render('suggestions', { suggestions: [], user: req.session ? req.session.user : null });
   }
 });
 
@@ -756,7 +757,7 @@ app.get('/admin/posts', requireAdmin, (req, res) => {
 // Error handlers
 app.use((req, res) => {
   res.status(404).render('errors/error', { 
-    user: req.session.user,
+    user: req.session ? req.session.user : null,
     error_code: 404, 
     error_message: "Page not found" 
   });
@@ -765,7 +766,7 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).render('errors/error', { 
-    user: req.session.user,
+    user: req.session ? req.session.user : null,
     error_code: 500, 
     error_message: "Internal server error" 
   });
