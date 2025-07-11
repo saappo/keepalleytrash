@@ -141,8 +141,8 @@ Once connected to GitHub, Vercel will automatically:
 
 ### Admin Access:
 - **Email:** admin@keepalleytrash.com
-- **Password:** admin123
-- **Change these in production!**
+- **Password:** SecureAdmin2025!
+- **These credentials have been updated for security!**
 
 ## 🎉 Success!
 

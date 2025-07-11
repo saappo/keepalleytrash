@@ -1,13 +1,21 @@
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="card shadow">
             <div class="card-header bg-success text-white text-center">
                 <h4 class="mb-0">
                     <i class="fas fa-envelope me-2"></i>Subscribe to Our Newsletter
                 </h4>
             </div>
-            <div class="card-body text-center">
-                <p class="lead mb-4">Stay updated with the latest community news, cleanup events, and neighborhood improvements!</p>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Newsletter Information</h6>
+                    <p class="mb-0">
+                        <strong>Important:</strong> When you register for an account, you are automatically subscribed to our newsletter. 
+                        This form is for additional email addresses or for those who want to subscribe without creating an account.
+                    </p>
+                </div>
+                
+                <p class="lead text-center mb-4">Stay updated with the latest community news, cleanup events, and neighborhood improvements!</p>
                 
                 {{#if errors}}
                     {{#each errors}}
@@ -19,10 +27,14 @@
                     <div class="mb-3">
                         <label for="email" class="form-label">Email Address</label>
                         <input type="email" class="form-control" id="email" name="email" value="{{formData.email}}" placeholder="Enter your email address" required>
+                        <div class="form-text">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            We respect your privacy. Your email will only be used for newsletter communications.
+                        </div>
                     </div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-paper-plane me-2"></i>Subscribe Now
+                            <i class="fas fa-paper-plane me-2"></i>Subscribe to Newsletter
                         </button>
                     </div>
                 </form>

@@ -13,91 +13,172 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Database setup
-const dbPath = process.env.NODE_ENV === 'production' ? ':memory:' : './keepalleytrash.db';
+const dbPath = process.env.NODE_ENV === 'production' ? './keepalleytrash.db' : './keepalleytrash.db';
 console.log(`Using database: ${dbPath}`);
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Database connection error:', err);
-  } else {
-    console.log('Database connected successfully');
-  }
-});
 
-// Create tables if they don't exist
-db.serialize(() => {
-  // Users table
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    neighborhood TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    is_admin BOOLEAN DEFAULT 0
-  )`);
+// Initialize database
+const initializeDatabase = () => {
+  return new Promise((resolve, reject) => {
+    const db = new sqlite3.Database(dbPath, (err) => {
+      if (err) {
+        console.error('Database connection error:', err);
+        reject(err);
+        return;
+      }
+      console.log('Database connected successfully');
+      
+      // Create tables if they don't exist
+      db.serialize(() => {
+        // Users table
+        db.run(`CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          neighborhood TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          is_admin BOOLEAN DEFAULT 0
+        )`, (err) => {
+          if (err) console.error('Error creating users table:', err);
+          else console.log('Users table ready');
+        });
 
-  // Posts table
-  db.run(`CREATE TABLE IF NOT EXISTS posts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    user_id INTEGER NOT NULL,
-    category TEXT DEFAULT 'general',
-    FOREIGN KEY (user_id) REFERENCES users (id)
-  )`);
+        // Posts table
+        db.run(`CREATE TABLE IF NOT EXISTS posts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          user_id INTEGER NOT NULL,
+          category TEXT DEFAULT 'general',
+          FOREIGN KEY (user_id) REFERENCES users (id)
+        )`, (err) => {
+          if (err) console.error('Error creating posts table:', err);
+          else console.log('Posts table ready');
+        });
 
-  // Suggestions table
-  db.run(`CREATE TABLE IF NOT EXISTS suggestions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    category TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    user_id INTEGER NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users (id)
-  )`);
+        // Suggestions table
+        db.run(`CREATE TABLE IF NOT EXISTS suggestions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          description TEXT NOT NULL,
+          category TEXT NOT NULL,
+          status TEXT DEFAULT 'pending',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          user_id INTEGER NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id)
+        )`, (err) => {
+          if (err) console.error('Error creating suggestions table:', err);
+          else console.log('Suggestions table ready');
+        });
 
-  // Contact table
-  db.run(`CREATE TABLE IF NOT EXISTS contacts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    subject TEXT NOT NULL,
-    message TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+        // Contact table
+        db.run(`CREATE TABLE IF NOT EXISTS contacts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          subject TEXT NOT NULL,
+          message TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`, (err) => {
+          if (err) console.error('Error creating contacts table:', err);
+          else console.log('Contacts table ready');
+        });
 
-  // Subscribers table
-  db.run(`CREATE TABLE IF NOT EXISTS subscribers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE NOT NULL,
-    subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+        // Newsletter subscribers table
+        db.run(`CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT UNIQUE NOT NULL,
+          subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          is_active BOOLEAN DEFAULT 1
+        )`, (err) => {
+          if (err) console.error('Error creating newsletter_subscribers table:', err);
+          else console.log('Newsletter subscribers table ready');
+        });
 
-  // Create admin user if none exists
-  db.get("SELECT * FROM users WHERE is_admin = 1", (err, row) => {
-    if (!row) {
-      const adminPassword = bcrypt.hashSync('admin123', 10);
-      db.run(`INSERT INTO users (username, email, password_hash, is_admin) 
-              VALUES (?, ?, ?, ?)`, 
-              ['admin', 'admin@keepalleytrash.com', adminPassword, 1]);
-    }
+        // Create admin user if none exists
+        db.get("SELECT * FROM users WHERE is_admin = 1", (err, row) => {
+          if (err) {
+            console.error('Error checking for admin user:', err);
+          } else if (!row) {
+            const adminPassword = bcrypt.hashSync('admin123', 10);
+            db.run(`INSERT INTO users (username, email, password_hash, is_admin) 
+                    VALUES (?, ?, ?, ?)`, 
+                    ['admin', 'admin@keepalleytrash.com', adminPassword, 1], (err) => {
+              if (err) console.error('Error creating admin user:', err);
+              else console.log('Admin user created successfully');
+            });
+          } else {
+            console.log('Admin user already exists');
+          }
+        });
+
+        // Finalize database setup
+        db.run("PRAGMA foreign_keys = ON", (err) => {
+          if (err) console.error('Error enabling foreign keys:', err);
+          else console.log('Foreign keys enabled');
+          resolve(db);
+        });
+      });
+    });
   });
-});
+};
+
+// Initialize database and store reference
+let db;
+let dbReady = false;
+
+initializeDatabase()
+  .then((database) => {
+    db = database;
+    dbReady = true;
+    console.log('Database initialization complete');
+  })
+  .catch((err) => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+  });
+
+// Database operation wrapper
+const dbOperation = (operation) => {
+  return new Promise((resolve, reject) => {
+    if (!dbReady) {
+      reject(new Error('Database not ready'));
+      return;
+    }
+    operation(db, resolve, reject);
+  });
+};
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static('static'));
 
+// Database ready middleware
+app.use((req, res, next) => {
+  if (!dbReady) {
+    return res.status(503).render('errors/error', { 
+      user: req.session.user,
+      error_code: 503, 
+      error_message: "Database is initializing, please try again in a moment" 
+    });
+  }
+  next();
+});
+
 // Session configuration
 app.use(session({
   secret: process.env.SECRET_KEY || 'dev-secret-key-change-in-production',
-  resave: false,
+  resave: true,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production' }
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax'
+  },
+  name: 'keepalleytrash.sid'
 }));
 
 // Handlebars setup with helpers
@@ -126,9 +207,11 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
+  console.log('Auth check - userId:', req.session.userId, 'user:', req.session.user);
   if (req.session.userId) {
     next();
   } else {
+    console.log('User not authenticated, redirecting to login');
     res.redirect('/login');
   }
 };
@@ -154,6 +237,14 @@ if (process.env.MAIL_USERNAME && process.env.MAIL_PASSWORD) {
 }
 
 // Routes
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    database: dbReady ? 'ready' : 'initializing',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/', (req, res) => {
   console.log('Home route accessed');
   try {
@@ -211,26 +302,59 @@ app.post('/register', [
   const { username, email, password, neighborhood } = req.body;
   const passwordHash = bcrypt.hashSync(password, 10);
 
-  db.run(`INSERT INTO users (username, email, password_hash, neighborhood) VALUES (?, ?, ?, ?)`,
-    [username, email, passwordHash, neighborhood],
-    function(err) {
-      if (err) {
-        if (err.message.includes('UNIQUE constraint failed')) {
+  // Use transaction to ensure both user creation and newsletter subscription succeed or fail together
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+    
+    // Create user
+    db.run(`INSERT INTO users (username, email, password_hash, neighborhood) VALUES (?, ?, ?, ?)`,
+      [username, email, passwordHash, neighborhood],
+      function(err) {
+        if (err) {
+          db.run('ROLLBACK');
+          if (err.message.includes('UNIQUE constraint failed')) {
+            return res.render('register', { 
+              user: req.session.user, 
+              errors: [{ msg: 'Username or email already exists' }],
+              formData: req.body 
+            });
+          }
           return res.render('register', { 
             user: req.session.user, 
-            errors: [{ msg: 'Username or email already exists' }],
+            errors: [{ msg: 'Registration failed' }],
             formData: req.body 
           });
         }
-        return res.render('register', { 
-          user: req.session.user, 
-          errors: [{ msg: 'Registration failed' }],
-          formData: req.body 
-        });
+        
+        // Automatically subscribe to newsletter
+        db.run(`INSERT OR IGNORE INTO newsletter_subscribers (email) VALUES (?)`,
+          [email],
+          function(err) {
+            if (err) {
+              console.error('Error subscribing to newsletter:', err);
+              // Don't fail registration if newsletter subscription fails
+            } else {
+              console.log('User automatically subscribed to newsletter:', email);
+            }
+            
+            db.run('COMMIT', (err) => {
+              if (err) {
+                console.error('Error committing transaction:', err);
+                db.run('ROLLBACK');
+                return res.render('register', { 
+                  user: req.session.user, 
+                  errors: [{ msg: 'Registration failed' }],
+                  formData: req.body 
+                });
+              }
+              console.log('User registered successfully:', username);
+              res.redirect('/login');
+            });
+          }
+        );
       }
-      res.redirect('/login');
-    }
-  );
+    );
+  });
 });
 
 app.get('/login', (req, res) => {
@@ -254,9 +378,20 @@ app.post('/login', [
   }
 
   const { email, password } = req.body;
+  console.log('Login attempt for email:', email);
 
   db.get("SELECT * FROM users WHERE email = ?", [email], (err, user) => {
-    if (err || !user || !bcrypt.compareSync(password, user.password_hash)) {
+    if (err) {
+      console.error('Database error during login:', err);
+      return res.render('login', { 
+        user: req.session.user, 
+        errors: [{ msg: 'Database error occurred' }],
+        formData: req.body 
+      });
+    }
+    
+    if (!user) {
+      console.log('User not found for email:', email);
       return res.render('login', { 
         user: req.session.user, 
         errors: [{ msg: 'Invalid email or password' }],
@@ -264,6 +399,16 @@ app.post('/login', [
       });
     }
 
+    if (!bcrypt.compareSync(password, user.password_hash)) {
+      console.log('Invalid password for user:', user.username);
+      return res.render('login', { 
+        user: req.session.user, 
+        errors: [{ msg: 'Invalid email or password' }],
+        formData: req.body 
+      });
+    }
+
+    console.log('Successful login for user:', user.username);
     req.session.userId = user.id;
     req.session.user = {
       id: user.id,
@@ -274,7 +419,19 @@ app.post('/login', [
     };
     req.session.isAdmin = user.is_admin;
 
-    res.redirect('/home');
+    // Save session explicitly
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.render('login', { 
+          user: req.session.user, 
+          errors: [{ msg: 'Session error occurred' }],
+          formData: req.body 
+        });
+      }
+      console.log('Session saved successfully for user:', user.username);
+      res.redirect('/home');
+    });
   });
 });
 
@@ -303,6 +460,13 @@ app.get('/about', (req, res) => {
 
 app.get('/considerations', (req, res) => {
   res.render('considerations', { user: req.session.user });
+});
+
+app.get('/guidelines', (req, res) => {
+  res.render('guidelines', { 
+    user: req.session.user,
+    lastUpdated: new Date()
+  });
 });
 
 app.get('/submit', requireAuth, (req, res) => {
@@ -463,18 +627,30 @@ app.post('/subscribe', [
   }
 
   const { email } = req.body;
+  console.log('Newsletter subscription attempt for:', email);
 
-  db.run(`INSERT OR IGNORE INTO subscribers (email) VALUES (?)`,
+  db.run(`INSERT OR IGNORE INTO newsletter_subscribers (email) VALUES (?)`,
     [email],
     function(err) {
       if (err) {
-        console.error(err);
+        console.error('Error subscribing to newsletter:', err);
         return res.render('subscribe', { 
           user: req.session.user, 
-          errors: [{ msg: 'Failed to subscribe' }],
+          errors: [{ msg: 'Failed to subscribe to newsletter' }],
           formData: req.body 
         });
       }
+      
+      if (this.changes > 0) {
+        console.log('New newsletter subscriber added:', email);
+        req.flash = req.flash || {};
+        req.flash.success = 'Successfully subscribed to newsletter!';
+      } else {
+        console.log('Email already subscribed to newsletter:', email);
+        req.flash = req.flash || {};
+        req.flash.info = 'This email is already subscribed to our newsletter.';
+      }
+      
       res.redirect('/home');
     }
   );

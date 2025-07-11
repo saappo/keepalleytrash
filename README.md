@@ -104,9 +104,9 @@ git push -u origin main
 ## Admin Access
 Default admin credentials:
 - Email: admin@keepalleytrash.com
-- Password: admin123
+- Password: SecureAdmin2025!
 
-**Important**: Change these credentials in production!
+**Important**: These credentials have been updated for security. Keep them safe!
 
 ## Environment Variables
 - `SECRET_KEY`: Session secret key
