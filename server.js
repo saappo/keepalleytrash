@@ -213,7 +213,19 @@ app.engine('handlebars', exphbs.engine({
       if (!date) return '';
       const d = new Date(date);
       if (format) {
-        // Simple format support for common patterns
+        // Handle the specific format used in index.handlebars
+        if (format.includes('MMMM Do, YYYY [at] h:mm A')) {
+          const month = d.toLocaleDateString('en-US', { month: 'long' });
+          const day = d.getDate();
+          const year = d.getFullYear();
+          const time = d.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+          });
+          return `${month} ${day}, ${year} at ${time}`;
+        }
+        // Handle other format patterns
         const month = d.toLocaleDateString('en-US', { month: 'long' });
         const day = d.getDate();
         const year = d.getFullYear();
@@ -286,21 +298,21 @@ app.get('/test', (req, res) => {
   });
 });
 
+// Simple test route that renders a basic template
+app.get('/test-render', (req, res) => {
+  try {
+    res.render('index', { 
+      user: null,
+      lastUpdated: new Date()
+    });
+  } catch (error) {
+    console.error('Error in test-render:', error);
+    res.status(500).json({ error: error.message, stack: error.stack });
+  }
+});
+
 app.get('/', (req, res) => {
   console.log('Home route accessed');
-  console.log('Session:', req.session);
-  console.log('User:', req.session ? req.session.user : 'No session');
-  console.log('Session ID:', req.sessionID);
-  
-  // Check if database is ready
-  if (!dbReady) {
-    console.log('Database not ready, returning 503');
-    return res.status(503).render('errors/error', { 
-      user: req.session ? req.session.user : null,
-      error_code: 503, 
-      error_message: "Database is initializing, please try again in a moment" 
-    });
-  }
   
   try {
     const renderData = { 
@@ -312,10 +324,10 @@ app.get('/', (req, res) => {
   } catch (error) {
     console.error('Error rendering index:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).render('errors/error', { 
-      user: req.session ? req.session.user : null,
-      error_code: 500, 
-      error_message: "Error loading home page" 
+    res.status(500).json({ 
+      error: 'Error rendering home page',
+      message: error.message,
+      stack: error.stack
     });
   }
 });
