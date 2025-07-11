@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Database setup
-const dbPath = process.env.NODE_ENV === 'production' ? './keepalleytrash.db' : './keepalleytrash.db';
+const dbPath = process.env.NODE_ENV === 'production' ? '/tmp/keepalleytrash.db' : './keepalleytrash.db';
 console.log(`Using database: ${dbPath}`);
 
 // Initialize database
@@ -707,10 +707,12 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Start server only in development
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
 }
 
+// Export app for Vercel
 module.exports = app; 
