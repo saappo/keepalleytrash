@@ -136,7 +136,10 @@ initializeDatabase()
   })
   .catch((err) => {
     console.error('Failed to initialize database:', err);
-    process.exit(1);
+    // Don't exit in production, just log the error
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    }
   });
 
 // Database operation wrapper
@@ -451,15 +454,42 @@ app.get('/community', (req, res) => {
 });
 
 app.get('/cleanup', (req, res) => {
-  res.render('cleanup', { user: req.session.user });
+  try {
+    res.render('cleanup', { user: req.session.user });
+  } catch (error) {
+    console.error('Error rendering cleanup page:', error);
+    res.status(500).render('errors/error', { 
+      user: req.session.user,
+      error_code: 500, 
+      error_message: "Error loading cleanup page" 
+    });
+  }
 });
 
 app.get('/about', (req, res) => {
-  res.render('about', { user: req.session.user });
+  try {
+    res.render('about', { user: req.session.user });
+  } catch (error) {
+    console.error('Error rendering about page:', error);
+    res.status(500).render('errors/error', { 
+      user: req.session.user,
+      error_code: 500, 
+      error_message: "Error loading about page" 
+    });
+  }
 });
 
 app.get('/considerations', (req, res) => {
-  res.render('considerations', { user: req.session.user });
+  try {
+    res.render('considerations', { user: req.session.user });
+  } catch (error) {
+    console.error('Error rendering considerations page:', error);
+    res.status(500).render('errors/error', { 
+      user: req.session.user,
+      error_code: 500, 
+      error_message: "Error loading considerations page" 
+    });
+  }
 });
 
 app.get('/guidelines', (req, res) => {
@@ -506,13 +536,30 @@ app.post('/submit', requireAuth, [
 });
 
 app.get('/suggestions', (req, res) => {
-  db.all("SELECT s.*, u.username FROM suggestions s JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC", (err, suggestions) => {
-    if (err) {
-      console.error(err);
-      suggestions = [];
+  try {
+    if (!dbReady) {
+      return res.status(503).render('errors/error', { 
+        user: req.session.user,
+        error_code: 503, 
+        error_message: "Database is initializing, please try again in a moment" 
+      });
     }
-    res.render('suggestions', { suggestions, user: req.session.user });
-  });
+    
+    db.all("SELECT s.*, u.username FROM suggestions s JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC", (err, suggestions) => {
+      if (err) {
+        console.error('Database error in suggestions route:', err);
+        suggestions = [];
+      }
+      res.render('suggestions', { suggestions, user: req.session.user });
+    });
+  } catch (error) {
+    console.error('Error in suggestions route:', error);
+    res.status(500).render('errors/error', { 
+      user: req.session.user,
+      error_code: 500, 
+      error_message: "Error loading suggestions page" 
+    });
+  }
 });
 
 app.get('/submit_suggestion', requireAuth, (req, res) => {
