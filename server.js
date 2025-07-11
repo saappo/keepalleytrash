@@ -212,7 +212,7 @@ app.engine('handlebars', exphbs.engine({
     formatDate: function (date, format) {
       if (!date) return '';
       const d = new Date(date);
-      if (format) {
+      if (format && typeof format === 'string') {
         // Handle the specific format used in index.handlebars
         if (format.includes('MMMM Do, YYYY [at] h:mm A')) {
           const month = d.toLocaleDateString('en-US', { month: 'long' });
