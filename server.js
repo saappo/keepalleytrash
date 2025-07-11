@@ -270,6 +270,8 @@ app.get('/test', (req, res) => {
 
 app.get('/', (req, res) => {
   console.log('Home route accessed');
+  console.log('User:', req.session.user);
+  console.log('Session ID:', req.sessionID);
   try {
     res.render('index', { 
       user: req.session.user,
@@ -277,6 +279,7 @@ app.get('/', (req, res) => {
     });
   } catch (error) {
     console.error('Error rendering index:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).send('Internal Server Error');
   }
 });
