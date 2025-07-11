@@ -33,13 +33,13 @@ pip install -r requirements.txt
 
 4. Run the development server:
 ```bash
-python app.py
+# Note: Main application file has been removed
+# Please refer to alternative setup instructions
 ```
 
 5. Visit http://localhost:5000 in your web browser
 
 ## Project Structure
-- `app.py` - Main application file
 - `templates/` - HTML templates
 - `static/` - CSS, JavaScript, and image files
 - `models/` - Database models
