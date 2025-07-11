@@ -209,9 +209,21 @@ app.engine('handlebars', exphbs.engine({
     eq: function (a, b) {
       return a === b;
     },
-    formatDate: function (date) {
+    formatDate: function (date, format) {
       if (!date) return '';
       const d = new Date(date);
+      if (format) {
+        // Simple format support for common patterns
+        const month = d.toLocaleDateString('en-US', { month: 'long' });
+        const day = d.getDate();
+        const year = d.getFullYear();
+        const time = d.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+        return `${month} ${day}, ${year} at ${time}`;
+      }
       return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
     },
     truncate: function (str, length) {
@@ -279,15 +291,32 @@ app.get('/', (req, res) => {
   console.log('Session:', req.session);
   console.log('User:', req.session ? req.session.user : 'No session');
   console.log('Session ID:', req.sessionID);
+  
+  // Check if database is ready
+  if (!dbReady) {
+    console.log('Database not ready, returning 503');
+    return res.status(503).render('errors/error', { 
+      user: req.session ? req.session.user : null,
+      error_code: 503, 
+      error_message: "Database is initializing, please try again in a moment" 
+    });
+  }
+  
   try {
-    res.render('index', { 
+    const renderData = { 
       user: req.session ? req.session.user : null,
       lastUpdated: new Date()
-    });
+    };
+    console.log('Rendering index with data:', renderData);
+    res.render('index', renderData);
   } catch (error) {
     console.error('Error rendering index:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).send('Internal Server Error');
+    res.status(500).render('errors/error', { 
+      user: req.session ? req.session.user : null,
+      error_code: 500, 
+      error_message: "Error loading home page" 
+    });
   }
 });
 
