@@ -821,6 +821,16 @@ app.post('/submit', requireAuth, [
 
 app.get('/suggestions', (req, res) => {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      // In production, show empty suggestions (no Supabase table for suggestions yet)
+      res.render('suggestions', { 
+        suggestions: [], 
+        user: req.session ? req.session.user : null,
+        productionMessage: 'Suggestions feature is currently not available in production.'
+      });
+      return;
+    }
+
     if (!dbReady) {
       // Return empty suggestions instead of error
       return res.render('suggestions', { suggestions: [], user: req.session ? req.session.user : null });
