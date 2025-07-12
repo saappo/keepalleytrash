@@ -49,8 +49,8 @@ const supabaseHelpers = {
         .from('KATnewsletter')
         .insert([
           {
-            email: email,
-            subscribed_at: new Date().toISOString()
+            email: email
+            // created_at will be set automatically by the database
           }
         ]);
       
@@ -75,7 +75,7 @@ const supabaseHelpers = {
       const { data, error } = await supabaseAdmin
         .from('KATnewsletter')
         .select('*')
-        .order('subscribed_at', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return { success: true, data };

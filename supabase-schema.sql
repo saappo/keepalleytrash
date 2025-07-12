@@ -1,3 +1,81 @@
+-- Supabase Schema for Keep Alley Trash
+-- Run this in your Supabase SQL Editor
+
+-- Users table for authentication
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    neighborhood VARCHAR(100) NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Posts table for community posts
+CREATE TABLE IF NOT EXISTS posts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for users table
+-- Allow users to read their own data
+CREATE POLICY "Users can view own profile" ON users
+    FOR SELECT USING (auth.uid()::text = id::text);
+
+-- Allow service role to manage all users (for server-side operations)
+CREATE POLICY "Service role can manage all users" ON users
+    FOR ALL USING (auth.role() = 'service_role');
+
+-- RLS Policies for posts table
+-- Allow anyone to read posts
+CREATE POLICY "Anyone can view posts" ON posts
+    FOR SELECT USING (true);
+
+-- Allow authenticated users to create posts
+CREATE POLICY "Authenticated users can create posts" ON posts
+    FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+
+-- Allow users to update their own posts
+CREATE POLICY "Users can update own posts" ON posts
+    FOR UPDATE USING (auth.uid()::text = user_id::text);
+
+-- Allow users to delete their own posts
+CREATE POLICY "Users can delete own posts" ON posts
+    FOR DELETE USING (auth.uid()::text = user_id::text);
+
+-- Allow service role to manage all posts (for server-side operations)
+CREATE POLICY "Service role can manage all posts" ON posts
+    FOR ALL USING (auth.role() = 'service_role');
+
+-- Create a function to update the updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create trigger to automatically update updated_at
+CREATE TRIGGER update_posts_updated_at 
+    BEFORE UPDATE ON posts 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Supabase Database Schema for Keep Alley Trash
 -- Run this in your Supabase SQL editor
 

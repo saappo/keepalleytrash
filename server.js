@@ -908,19 +908,38 @@ app.post('/contact', [
   const { name, email, subject, message } = req.body;
 
   try {
-    // Submit to Supabase
-    const result = await supabaseHelpers.submitContact(name, email, subject, message);
-    
-    if (!result.success) {
-      console.error('Supabase contact submission failed:', result.error);
-      return res.render('contact', { 
-        user: req.session.user, 
-        errors: [{ msg: 'Failed to send message. Please try again.' }],
-        formData: req.body 
+    if (process.env.NODE_ENV === 'production') {
+      // Production: Submit to Supabase
+      const result = await supabaseHelpers.submitContact(name, email, subject, message);
+      
+      if (!result.success) {
+        console.error('Supabase contact submission failed:', result.error);
+        return res.render('contact', { 
+          user: req.session.user, 
+          errors: [{ msg: 'Failed to send message. Please try again.' }],
+          formData: req.body 
+        });
+      }
+
+      console.log('Contact form submitted to Supabase successfully');
+    } else {
+      // Development: Submit to SQLite
+      await dbOperation((db, resolve, reject) => {
+        db.run(
+          'INSERT INTO contacts (name, email, subject, message) VALUES (?, ?, ?, ?)',
+          [name, email, subject, message],
+          function(err) {
+            if (err) {
+              console.error('Error inserting contact:', err);
+              reject(err);
+            } else {
+              console.log('Contact form submitted to SQLite successfully');
+              resolve();
+            }
+          }
+        );
       });
     }
-
-    console.log('Contact form submitted to Supabase successfully');
 
     // Send email notification if configured
     if (transporter) {
@@ -974,26 +993,53 @@ app.post('/subscribe', [
   console.log('Newsletter subscription attempt for:', email);
 
   try {
-    // Subscribe to newsletter via Supabase
-    const result = await supabaseHelpers.subscribeToNewsletter(email);
-    
-    if (!result.success) {
-      console.error('Supabase newsletter subscription failed:', result.error);
-      return res.render('subscribe', { 
-        user: req.session.user, 
-        errors: [{ msg: 'Failed to subscribe to newsletter. Please try again.' }],
-        formData: req.body 
-      });
-    }
+    if (process.env.NODE_ENV === 'production') {
+      // Production: Subscribe via Supabase
+      const result = await supabaseHelpers.subscribeToNewsletter(email);
+      
+      if (!result.success) {
+        console.error('Supabase newsletter subscription failed:', result.error);
+        return res.render('subscribe', { 
+          user: req.session.user, 
+          errors: [{ msg: 'Failed to subscribe to newsletter. Please try again.' }],
+          formData: req.body 
+        });
+      }
 
-    if (result.message === 'Email already subscribed') {
-      console.log('Email already subscribed to newsletter:', email);
-      req.flash = req.flash || {};
-      req.flash.info = 'This email is already subscribed to our newsletter.';
+      if (result.message === 'Email already subscribed') {
+        console.log('Email already subscribed to newsletter:', email);
+        req.flash = req.flash || {};
+        req.flash.info = 'This email is already subscribed to our newsletter.';
+      } else {
+        console.log('New newsletter subscriber added to Supabase:', email);
+        req.flash = req.flash || {};
+        req.flash.success = 'Successfully subscribed to newsletter!';
+      }
     } else {
-      console.log('New newsletter subscriber added to Supabase:', email);
-      req.flash = req.flash || {};
-      req.flash.success = 'Successfully subscribed to newsletter!';
+      // Development: Subscribe via SQLite
+      await dbOperation((db, resolve, reject) => {
+        db.run(
+          'INSERT OR IGNORE INTO newsletter_subscribers (email) VALUES (?)',
+          [email],
+          function(err) {
+            if (err) {
+              console.error('Error inserting newsletter subscriber:', err);
+              reject(err);
+            } else {
+              if (this.changes > 0) {
+                console.log('New newsletter subscriber added to SQLite:', email);
+                req.flash = req.flash || {};
+                req.flash.success = 'Successfully subscribed to newsletter!';
+              } else {
+                console.log('Email already subscribed to newsletter:', email);
+                req.flash = req.flash || {};
+                req.flash.info = 'This email is already subscribed to our newsletter.';
+              }
+              resolve();
+            }
+          }
+        );
+      });
     }
     
     res.redirect('/home');
