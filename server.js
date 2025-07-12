@@ -376,7 +376,38 @@ app.get('/welcome', (req, res) => {
   res.render('welcome', { user: req.session ? req.session.user : null });
 });
 
-app.get('/home', (req, res) => {
+app.get('/home', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    // In production, get posts from Supabase
+    try {
+      const postsResult = await supabaseHelpers.getPosts();
+      if (postsResult.success) {
+        // Transform the data to match the expected format
+        const posts = postsResult.data.map(post => ({
+          ...post,
+          username: post.users?.username || 'Unknown User'
+        }));
+        res.render('home', { 
+          posts: posts.slice(0, 5), // Limit to 5 posts
+          user: req.session ? req.session.user : null
+        });
+      } else {
+        console.error('Error fetching posts from Supabase:', postsResult.error);
+        res.render('home', { 
+          posts: [], 
+          user: req.session ? req.session.user : null
+        });
+      }
+    } catch (error) {
+      console.error('Error in Supabase posts fetch:', error);
+      res.render('home', { 
+        posts: [], 
+        user: req.session ? req.session.user : null
+      });
+    }
+    return;
+  }
+  
   db.all("SELECT p.*, u.username FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC LIMIT 5", (err, posts) => {
     if (err) {
       console.error(err);
@@ -415,6 +446,47 @@ app.post('/register', [
 
   const { username, email, password, neighborhood } = req.body;
   const passwordHash = bcrypt.hashSync(password, 10);
+
+  // In production, use Supabase for user registration
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      // Create user in Supabase
+      const userResult = await supabaseHelpers.createUser(username, email, passwordHash, neighborhood);
+      
+      if (!userResult.success) {
+        return res.render('register', { 
+          user: req.session.user, 
+          errors: [{ msg: userResult.error }],
+          formData: req.body 
+        });
+      }
+
+      // Automatically subscribe to newsletter via Supabase
+      try {
+        const newsletterResult = await supabaseHelpers.subscribeToNewsletter(email);
+        if (newsletterResult.success) {
+          console.log('User automatically subscribed to newsletter via Supabase:', email);
+        } else {
+          console.error('Error subscribing to newsletter via Supabase:', newsletterResult.error);
+          // Don't fail registration if newsletter subscription fails
+        }
+      } catch (newsletterError) {
+        console.error('Error subscribing to newsletter via Supabase:', newsletterError);
+        // Don't fail registration if newsletter subscription fails
+      }
+
+      console.log('User registered successfully via Supabase:', username);
+      res.redirect('/login');
+      return;
+    } catch (error) {
+      console.error('Error in Supabase registration process:', error);
+      return res.render('register', { 
+        user: req.session.user, 
+        errors: [{ msg: 'Registration failed. Please try again.' }],
+        formData: req.body 
+      });
+    }
+  }
 
   try {
     // Use transaction to ensure both user creation and newsletter subscription succeed or fail together
@@ -491,7 +563,7 @@ app.get('/login', (req, res) => {
 app.post('/login', [
   body('email').isEmail().withMessage('Please enter a valid email'),
   body('password').notEmpty().withMessage('Password is required')
-], (req, res) => {
+], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.render('login', { 
@@ -503,6 +575,66 @@ app.post('/login', [
 
   const { email, password } = req.body;
   console.log('Login attempt for email:', email);
+
+  // In production, use Supabase for user authentication
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      const userResult = await supabaseHelpers.getUserByEmail(email);
+      
+      if (!userResult.success) {
+        console.log('User not found for email:', email);
+        return res.render('login', { 
+          user: req.session.user, 
+          errors: [{ msg: 'Invalid email or password' }],
+          formData: req.body 
+        });
+      }
+
+      const user = userResult.data;
+
+      if (!bcrypt.compareSync(password, user.password_hash)) {
+        console.log('Invalid password for user:', user.username);
+        return res.render('login', { 
+          user: req.session.user, 
+          errors: [{ msg: 'Invalid email or password' }],
+          formData: req.body 
+        });
+      }
+
+      console.log('Successful login for user via Supabase:', user.username);
+      req.session.userId = user.id;
+      req.session.user = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        neighborhood: user.neighborhood,
+        isAdmin: user.is_admin
+      };
+      req.session.isAdmin = user.is_admin;
+
+      // Save session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.render('login', { 
+            user: req.session.user, 
+            errors: [{ msg: 'Session error occurred' }],
+            formData: req.body 
+          });
+        }
+        console.log('Session saved successfully for user:', user.username);
+        res.redirect('/home');
+      });
+      return;
+    } catch (error) {
+      console.error('Error in Supabase login process:', error);
+      return res.render('login', { 
+        user: req.session.user, 
+        errors: [{ msg: 'Login failed. Please try again.' }],
+        formData: req.body 
+      });
+    }
+  }
 
   db.get("SELECT * FROM users WHERE email = ?", [email], (err, user) => {
     if (err) {
@@ -564,7 +696,38 @@ app.get('/logout', (req, res) => {
   res.redirect('/home');
 });
 
-app.get('/community', (req, res) => {
+app.get('/community', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    // In production, get posts from Supabase
+    try {
+      const postsResult = await supabaseHelpers.getPosts();
+      if (postsResult.success) {
+        // Transform the data to match the expected format
+        const posts = postsResult.data.map(post => ({
+          ...post,
+          username: post.users?.username || 'Unknown User'
+        }));
+        res.render('community', { 
+          posts: posts,
+          user: req.session ? req.session.user : null
+        });
+      } else {
+        console.error('Error fetching posts from Supabase:', postsResult.error);
+        res.render('community', { 
+          posts: [], 
+          user: req.session ? req.session.user : null
+        });
+      }
+    } catch (error) {
+      console.error('Error in Supabase posts fetch:', error);
+      res.render('community', { 
+        posts: [], 
+        user: req.session ? req.session.user : null
+      });
+    }
+    return;
+  }
+
   db.all("SELECT p.*, u.username FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC", (err, posts) => {
     if (err) {
       console.error(err);

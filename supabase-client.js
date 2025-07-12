@@ -100,6 +100,76 @@ const supabaseHelpers = {
       console.error('Error fetching contact submissions:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  // User authentication functions (for production)
+  // Table: users (needs to be created in Supabase)
+  async createUser(username, email, passwordHash, neighborhood) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .insert([
+          {
+            username: username,
+            email: email,
+            password_hash: passwordHash,
+            neighborhood: neighborhood,
+            is_admin: false,
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select();
+      
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          return { success: false, error: 'Username or email already exists' };
+        }
+        throw error;
+      }
+      return { success: true, data: data[0] };
+    } catch (error) {
+      console.error('Error creating user:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getUserByEmail(email) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
+      
+      if (error) {
+        if (error.code === 'PGRST116') { // No rows returned
+          return { success: false, error: 'User not found' };
+        }
+        throw error;
+      }
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error fetching user by email:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getPosts() {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('posts')
+        .select(`
+          *,
+          users(username)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      return { success: false, error: error.message };
+    }
   }
 };
 
