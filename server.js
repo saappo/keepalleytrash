@@ -13,22 +13,28 @@ require('dotenv').config();
 // Import Supabase client
 const { supabaseHelpers } = require('./supabase-client');
 
+// Check for required environment variables in production
+if (process.env.NODE_ENV === 'production') {
+  const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SECRET_KEY'];
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.error('❌ Missing required environment variables:', missingVars);
+    console.error('Please set these in your Vercel project settings');
+  } else {
+    console.log('✅ All required environment variables are set');
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database setup
-const dbPath = process.env.NODE_ENV === 'production' ? '/tmp/keepalleytrash.db' : './keepalleytrash.db';
+// Database setup - SQLite only for development
+const dbPath = './keepalleytrash.db';
 console.log(`Using database: ${dbPath}`);
 
-// Ensure database directory exists in production
-if (process.env.NODE_ENV === 'production') {
-  const fs = require('fs');
-  const path = require('path');
-  const dbDir = path.dirname(dbPath);
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-}
+// In production (Vercel), we'll use Supabase for data storage
+// SQLite is only used for development
 
 // Initialize database
 const initializeDatabase = () => {
@@ -142,23 +148,33 @@ const initializeDatabase = () => {
 let db;
 let dbReady = false;
 
-initializeDatabase()
-  .then((database) => {
-    db = database;
-    dbReady = true;
-    console.log('Database initialization complete');
-  })
-  .catch((err) => {
-    console.error('Failed to initialize database:', err);
-    // Don't exit in production, just log the error
-    if (process.env.NODE_ENV !== 'production') {
+// In production, skip SQLite initialization since we use Supabase
+if (process.env.NODE_ENV === 'production') {
+  console.log('🚀 Production mode: Using Supabase for data storage');
+  dbReady = true; // Mark as ready since we'll use Supabase
+} else {
+  // Development mode: Initialize SQLite
+  initializeDatabase()
+    .then((database) => {
+      db = database;
+      dbReady = true;
+      console.log('Database initialization complete');
+    })
+    .catch((err) => {
+      console.error('Failed to initialize database:', err);
       process.exit(1);
-    }
-  });
+    });
+}
 
 // Database operation wrapper
 const dbOperation = (operation) => {
   return new Promise((resolve, reject) => {
+    if (process.env.NODE_ENV === 'production') {
+      // In production, redirect to Supabase operations
+      reject(new Error('SQLite operations not available in production. Use Supabase instead.'));
+      return;
+    }
+    
     if (!dbReady) {
       reject(new Error('Database not ready'));
       return;
@@ -174,21 +190,26 @@ app.use(express.static('static'));
 
 // Database ready middleware
 app.use((req, res, next) => {
-  if (!dbReady) {
+  if (process.env.NODE_ENV === 'production') {
+    // In production, we're always ready since we use Supabase
+    next();
+  } else if (!dbReady) {
     return res.status(503).render('errors/error', { 
       user: req.session ? req.session.user : null,
       error_code: 503, 
       error_message: "Database is initializing, please try again in a moment" 
     });
+  } else {
+    next();
   }
-  next();
 });
 
 // Session configuration
 app.use(session({
-  store: new SQLiteStore({
+  // Use memory store for Vercel (SQLite doesn't work in serverless)
+  store: process.env.NODE_ENV === 'production' ? undefined : new SQLiteStore({
     db: 'sessions.db',
-    dir: process.env.NODE_ENV === 'production' ? '/tmp' : './',
+    dir: './',
     table: 'sessions'
   }),
   secret: process.env.SECRET_KEY || 'dev-secret-key-change-in-production',
@@ -809,21 +830,33 @@ app.get('/profile', requireAuth, (req, res) => {
 
 // Admin routes
 app.get('/admin/dashboard', requireAdmin, (req, res) => {
-  db.get("SELECT COUNT(*) as count FROM users", (err, usersResult) => {
-    db.get("SELECT COUNT(*) as count FROM posts", (err, postsResult) => {
-      db.get("SELECT COUNT(*) as count FROM suggestions", (err, suggestionsResult) => {
-        db.get("SELECT COUNT(*) as count FROM contacts", (err, contactsResult) => {
-          res.render('admin/dashboard', {
-            user: req.session.user,
-            users_count: usersResult.count,
-            posts_count: postsResult.count,
-            suggestions_count: suggestionsResult.count,
-            contacts_count: contactsResult.count
+  if (process.env.NODE_ENV === 'production') {
+    // In production, show a simplified dashboard with Supabase data
+    res.render('admin/dashboard', {
+      user: req.session.user,
+      users_count: 'N/A (Use Supabase Dashboard)',
+      posts_count: 'N/A (Use Supabase Dashboard)',
+      suggestions_count: 'N/A (Use Supabase Dashboard)',
+      contacts_count: 'N/A (Use Supabase Dashboard)'
+    });
+  } else {
+    // Development mode: Use SQLite
+    db.get("SELECT COUNT(*) as count FROM users", (err, usersResult) => {
+      db.get("SELECT COUNT(*) as count FROM posts", (err, postsResult) => {
+        db.get("SELECT COUNT(*) as count FROM suggestions", (err, suggestionsResult) => {
+          db.get("SELECT COUNT(*) as count FROM contacts", (err, contactsResult) => {
+            res.render('admin/dashboard', {
+              user: req.session.user,
+              users_count: usersResult.count,
+              posts_count: postsResult.count,
+              suggestions_count: suggestionsResult.count,
+              contacts_count: contactsResult.count
+            });
           });
         });
       });
     });
-  });
+  }
 });
 
 app.get('/admin/posts', requireAdmin, (req, res) => {

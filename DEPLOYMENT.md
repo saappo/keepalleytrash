@@ -159,4 +159,60 @@ Your Keep Alley Trash community platform is now live and ready to help neighborh
 **Need Help?** Check out:
 - [Vercel Documentation](https://vercel.com/docs)
 - [GitHub Guides](https://guides.github.com/)
-- [Node.js Documentation](https://nodejs.org/docs/) 
+- [Node.js Documentation](https://nodejs.org/docs/)
+
+# Vercel Deployment Guide
+
+## Environment Variables Required
+
+Add these environment variables in your Vercel project settings:
+
+### Required Variables
+```
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SECRET_KEY=your_random_secret_key_for_sessions
+```
+
+### Optional Email Variables (for contact form notifications)
+```
+SMTP_HOST=your_smtp_host
+SMTP_PORT=587
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
+```
+
+## How to Set Environment Variables on Vercel
+
+1. Go to your Vercel dashboard
+2. Select your project
+3. Go to Settings → Environment Variables
+4. Add each variable with the appropriate value
+5. Redeploy your project
+
+## Current Setup
+
+- **Development**: Uses SQLite for local development
+- **Production**: Uses Supabase for data storage (contact form, newsletter)
+- **Sessions**: Memory-based in production (SQLite sessions don't work on Vercel)
+
+## Data Storage
+
+- **Contact Form Submissions**: Stored in Supabase table `KATcontactUSonly`
+- **Newsletter Subscriptions**: Stored in Supabase table `KATnewsletter`
+- **Users/Posts**: Currently SQLite only (development mode)
+
+## Troubleshooting
+
+If you see a 500 error:
+1. Check that all required environment variables are set
+2. Verify your Supabase credentials are correct
+3. Check Vercel function logs for specific error messages
+
+## Next Steps
+
+To fully migrate to Supabase:
+1. Create user and post tables in Supabase
+2. Update authentication to use Supabase Auth
+3. Migrate existing SQLite data to Supabase 
