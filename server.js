@@ -311,12 +311,22 @@ if (
 }
 
 // Routes
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
+console.log("SUPABASE_ANON_KEY:", process.env.SUPABASE_ANON_KEY ? "set" : "missing");
+console.log("SUPABASE_SERVICE_ROLE_KEY:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "missing");
+console.log("SECRET_KEY:", process.env.SECRET_KEY ? "set" : "missing");
+
+// Health check route that always responds
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    database: dbReady ? 'ready' : 'initializing',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+  res.json({
+    status: 'ok',
+    node_env: process.env.NODE_ENV,
+    supabase_url: process.env.SUPABASE_URL ? 'set' : 'missing',
+    supabase_anon_key: process.env.SUPABASE_ANON_KEY ? 'set' : 'missing',
+    supabase_service_role_key: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'missing',
+    secret_key: process.env.SECRET_KEY ? 'set' : 'missing',
+    timestamp: new Date().toISOString()
   });
 });
 
