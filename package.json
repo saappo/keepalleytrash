@@ -19,6 +19,7 @@
   "author": "Keep Alley Trash Team",
   "license": "MIT",
   "dependencies": {
+    "@supabase/supabase-js": "^2.50.5",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "connect-sqlite3": "^0.9.16",

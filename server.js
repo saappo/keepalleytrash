@@ -10,6 +10,9 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 require('dotenv').config();
 
+// Import Supabase client
+const { supabaseHelpers } = require('./supabase-client');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -269,9 +272,16 @@ const requireAdmin = (req, res, next) => {
 
 // Email transporter (only if credentials are provided)
 let transporter = null;
-if (process.env.MAIL_USERNAME && process.env.MAIL_PASSWORD) {
+if (
+  process.env.MAIL_USERNAME &&
+  process.env.MAIL_PASSWORD &&
+  process.env.MAIL_HOST &&
+  process.env.MAIL_PORT
+) {
   transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: process.env.MAIL_HOST,
+    port: parseInt(process.env.MAIL_PORT, 10),
+    secure: process.env.MAIL_SECURE === 'true', // convert string to boolean
     auth: {
       user: process.env.MAIL_USERNAME,
       pass: process.env.MAIL_PASSWORD
@@ -362,7 +372,7 @@ app.post('/register', [
     }
     return true;
   })
-], (req, res) => {
+], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.render('register', { 
@@ -375,59 +385,69 @@ app.post('/register', [
   const { username, email, password, neighborhood } = req.body;
   const passwordHash = bcrypt.hashSync(password, 10);
 
-  // Use transaction to ensure both user creation and newsletter subscription succeed or fail together
-  db.serialize(() => {
-    db.run('BEGIN TRANSACTION');
-    
-    // Create user
-    db.run(`INSERT INTO users (username, email, password_hash, neighborhood) VALUES (?, ?, ?, ?)`,
-      [username, email, passwordHash, neighborhood],
-      function(err) {
-        if (err) {
-          db.run('ROLLBACK');
-          if (err.message.includes('UNIQUE constraint failed')) {
+  try {
+    // Use transaction to ensure both user creation and newsletter subscription succeed or fail together
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      
+      // Create user
+      db.run(`INSERT INTO users (username, email, password_hash, neighborhood) VALUES (?, ?, ?, ?)`,
+        [username, email, passwordHash, neighborhood],
+        async function(err) {
+          if (err) {
+            db.run('ROLLBACK');
+            if (err.message.includes('UNIQUE constraint failed')) {
+              return res.render('register', { 
+                user: req.session.user, 
+                errors: [{ msg: 'Username or email already exists' }],
+                formData: req.body 
+              });
+            }
             return res.render('register', { 
               user: req.session.user, 
-              errors: [{ msg: 'Username or email already exists' }],
+              errors: [{ msg: 'Registration failed' }],
               formData: req.body 
             });
           }
-          return res.render('register', { 
-            user: req.session.user, 
-            errors: [{ msg: 'Registration failed' }],
-            formData: req.body 
+          
+          // Automatically subscribe to newsletter via Supabase
+          try {
+            const newsletterResult = await supabaseHelpers.subscribeToNewsletter(email);
+            if (newsletterResult.success) {
+              console.log('User automatically subscribed to newsletter via Supabase:', email);
+            } else {
+              console.error('Error subscribing to newsletter via Supabase:', newsletterResult.error);
+              // Don't fail registration if newsletter subscription fails
+            }
+          } catch (newsletterError) {
+            console.error('Error subscribing to newsletter via Supabase:', newsletterError);
+            // Don't fail registration if newsletter subscription fails
+          }
+          
+          db.run('COMMIT', (err) => {
+            if (err) {
+              console.error('Error committing transaction:', err);
+              db.run('ROLLBACK');
+              return res.render('register', { 
+                user: req.session.user, 
+                errors: [{ msg: 'Registration failed' }],
+                formData: req.body 
+              });
+            }
+            console.log('User registered successfully:', username);
+            res.redirect('/login');
           });
         }
-        
-        // Automatically subscribe to newsletter
-        db.run(`INSERT OR IGNORE INTO newsletter_subscribers (email) VALUES (?)`,
-          [email],
-          function(err) {
-            if (err) {
-              console.error('Error subscribing to newsletter:', err);
-              // Don't fail registration if newsletter subscription fails
-            } else {
-              console.log('User automatically subscribed to newsletter:', email);
-            }
-            
-            db.run('COMMIT', (err) => {
-              if (err) {
-                console.error('Error committing transaction:', err);
-                db.run('ROLLBACK');
-                return res.render('register', { 
-                  user: req.session.user, 
-                  errors: [{ msg: 'Registration failed' }],
-                  formData: req.body 
-                });
-              }
-              console.log('User registered successfully:', username);
-              res.redirect('/login');
-            });
-          }
-        );
-      }
-    );
-  });
+      );
+    });
+  } catch (error) {
+    console.error('Error in registration process:', error);
+    res.render('register', { 
+      user: req.session.user, 
+      errors: [{ msg: 'Registration failed. Please try again.' }],
+      formData: req.body 
+    });
+  }
 });
 
 app.get('/login', (req, res) => {
@@ -671,7 +691,7 @@ app.post('/contact', [
   body('email').isEmail().withMessage('Please enter a valid email'),
   body('subject').notEmpty().withMessage('Subject is required'),
   body('message').notEmpty().withMessage('Message is required')
-], (req, res) => {
+], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.render('contact', { 
@@ -683,42 +703,51 @@ app.post('/contact', [
 
   const { name, email, subject, message } = req.body;
 
-  db.run(`INSERT INTO contacts (name, email, subject, message) VALUES (?, ?, ?, ?)`,
-    [name, email, subject, message],
-    function(err) {
-      if (err) {
-        console.error(err);
-        return res.render('contact', { 
-          user: req.session.user, 
-          errors: [{ msg: 'Failed to send message' }],
-          formData: req.body 
-        });
-      }
-
-      // Send email notification if configured
-      if (transporter) {
-        const mailOptions = {
-          from: email,
-          to: 'info@saappo.com',
-          subject: `New Contact Form Submission: ${subject}`,
-          text: `
-            Name: ${name}
-            Email: ${email}
-            Subject: ${subject}
-            Message: ${message}
-          `
-        };
-
-        transporter.sendMail(mailOptions, (error, info) => {
-          if (error) {
-            console.error('Email sending failed:', error);
-          }
-        });
-      }
-
-      res.redirect('/contact');
+  try {
+    // Submit to Supabase
+    const result = await supabaseHelpers.submitContact(name, email, subject, message);
+    
+    if (!result.success) {
+      console.error('Supabase contact submission failed:', result.error);
+      return res.render('contact', { 
+        user: req.session.user, 
+        errors: [{ msg: 'Failed to send message. Please try again.' }],
+        formData: req.body 
+      });
     }
-  );
+
+    console.log('Contact form submitted to Supabase successfully');
+
+    // Send email notification if configured
+    if (transporter) {
+      const mailOptions = {
+        from: email,
+        to: 'info@saappo.com',
+        subject: `New Contact Form Submission: ${subject}`,
+        text: `
+          Name: ${name}
+          Email: ${email}
+          Subject: ${subject}
+          Message: ${message}
+        `
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error('Email sending failed:', error);
+        }
+      });
+    }
+
+    res.redirect('/contact');
+  } catch (error) {
+    console.error('Error in contact form submission:', error);
+    res.render('contact', { 
+      user: req.session.user, 
+      errors: [{ msg: 'Failed to send message. Please try again.' }],
+      formData: req.body 
+    });
+  }
 });
 
 app.get('/subscribe', (req, res) => {
@@ -727,7 +756,7 @@ app.get('/subscribe', (req, res) => {
 
 app.post('/subscribe', [
   body('email').isEmail().withMessage('Please enter a valid email')
-], (req, res) => {
+], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.render('subscribe', { 
@@ -740,31 +769,38 @@ app.post('/subscribe', [
   const { email } = req.body;
   console.log('Newsletter subscription attempt for:', email);
 
-  db.run(`INSERT OR IGNORE INTO newsletter_subscribers (email) VALUES (?)`,
-    [email],
-    function(err) {
-      if (err) {
-        console.error('Error subscribing to newsletter:', err);
-        return res.render('subscribe', { 
-          user: req.session.user, 
-          errors: [{ msg: 'Failed to subscribe to newsletter' }],
-          formData: req.body 
-        });
-      }
-      
-      if (this.changes > 0) {
-        console.log('New newsletter subscriber added:', email);
-        req.flash = req.flash || {};
-        req.flash.success = 'Successfully subscribed to newsletter!';
-      } else {
-        console.log('Email already subscribed to newsletter:', email);
-        req.flash = req.flash || {};
-        req.flash.info = 'This email is already subscribed to our newsletter.';
-      }
-      
-      res.redirect('/home');
+  try {
+    // Subscribe to newsletter via Supabase
+    const result = await supabaseHelpers.subscribeToNewsletter(email);
+    
+    if (!result.success) {
+      console.error('Supabase newsletter subscription failed:', result.error);
+      return res.render('subscribe', { 
+        user: req.session.user, 
+        errors: [{ msg: 'Failed to subscribe to newsletter. Please try again.' }],
+        formData: req.body 
+      });
     }
-  );
+
+    if (result.message === 'Email already subscribed') {
+      console.log('Email already subscribed to newsletter:', email);
+      req.flash = req.flash || {};
+      req.flash.info = 'This email is already subscribed to our newsletter.';
+    } else {
+      console.log('New newsletter subscriber added to Supabase:', email);
+      req.flash = req.flash || {};
+      req.flash.success = 'Successfully subscribed to newsletter!';
+    }
+    
+    res.redirect('/home');
+  } catch (error) {
+    console.error('Error in newsletter subscription:', error);
+    res.render('subscribe', { 
+      user: req.session.user, 
+      errors: [{ msg: 'Failed to subscribe to newsletter. Please try again.' }],
+      formData: req.body 
+    });
+  }
 });
 
 app.get('/profile', requireAuth, (req, res) => {
