@@ -213,7 +213,7 @@ app.use(session({
     table: 'sessions'
   }),
   secret: process.env.SECRET_KEY || 'dev-secret-key-change-in-production',
-  resave: false,
+  resave: true, // Changed to true for better serverless compatibility
   saveUninitialized: false,
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
@@ -354,6 +354,11 @@ app.get('/test-render', (req, res) => {
 
 app.get('/', (req, res) => {
   console.log('Home route accessed');
+  console.log('Session data:', {
+    userId: req.session?.userId,
+    user: req.session?.user,
+    isAdmin: req.session?.isAdmin
+  });
   
   try {
     const renderData = { 
@@ -476,7 +481,27 @@ app.post('/register', [
       }
 
       console.log('User registered successfully via Supabase:', username);
-      res.redirect('/login');
+      
+      // Automatically log the user in after registration
+      req.session.userId = userResult.data.id;
+      req.session.user = {
+        id: userResult.data.id,
+        username: userResult.data.username,
+        email: userResult.data.email,
+        neighborhood: userResult.data.neighborhood,
+        isAdmin: userResult.data.is_admin
+      };
+      req.session.isAdmin = userResult.data.is_admin;
+      
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error after registration:', err);
+          res.redirect('/login');
+        } else {
+          console.log('Session saved successfully after registration for user:', username);
+          res.redirect('/home');
+        }
+      });
       return;
     } catch (error) {
       console.error('Error in Supabase registration process:', error);
