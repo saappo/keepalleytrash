@@ -8,6 +8,8 @@ const bodyParser = require('body-parser');
 const { body, validationResult } = require('express-validator');
 const nodemailer = require('nodemailer');
 const path = require('path');
+const cookieParser = require('cookie-parser');
+const { createSessionMiddleware } = require('./session-middleware');
 require('dotenv').config();
 
 // Import Supabase client
@@ -187,6 +189,7 @@ const dbOperation = (operation) => {
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static('static'));
+app.use(cookieParser());
 
 // Database ready middleware
 app.use((req, res, next) => {
@@ -205,24 +208,29 @@ app.use((req, res, next) => {
 });
 
 // Session configuration
-app.use(session({
-  // Use memory store for Vercel (SQLite doesn't work in serverless)
-  store: process.env.NODE_ENV === 'production' ? undefined : new SQLiteStore({
-    db: 'sessions.db',
-    dir: './',
-    table: 'sessions'
-  }),
-  secret: process.env.SECRET_KEY || 'dev-secret-key-change-in-production',
-  resave: true, // Changed to true for better serverless compatibility
-  saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax'
-  },
-  name: 'keepalleytrash.sid'
-}));
+if (process.env.NODE_ENV === 'production') {
+  // Use custom JWT-based session middleware for Vercel
+  app.use(createSessionMiddleware());
+} else {
+  // Use express-session with SQLite store for development
+  app.use(session({
+    store: new SQLiteStore({
+      db: 'sessions.db',
+      dir: './',
+      table: 'sessions'
+    }),
+    secret: process.env.SECRET_KEY || 'dev-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+      secure: false,
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax'
+    },
+    name: 'keepalleytrash.sid'
+  }));
+}
 
 // Handlebars setup with helpers
 app.engine('handlebars', exphbs.engine({
