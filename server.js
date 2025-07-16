@@ -156,16 +156,16 @@ if (process.env.NODE_ENV === 'production') {
   dbReady = true; // Mark as ready since we'll use Supabase
 } else {
   // Development mode: Initialize SQLite
-  initializeDatabase()
-    .then((database) => {
-      db = database;
-      dbReady = true;
-      console.log('Database initialization complete');
-    })
-    .catch((err) => {
-      console.error('Failed to initialize database:', err);
+initializeDatabase()
+  .then((database) => {
+    db = database;
+    dbReady = true;
+    console.log('Database initialization complete');
+  })
+  .catch((err) => {
+    console.error('Failed to initialize database:', err);
       process.exit(1);
-    });
+  });
 }
 
 // Database operation wrapper
@@ -203,7 +203,7 @@ app.use((req, res, next) => {
       error_message: "Database is initializing, please try again in a moment" 
     });
   } else {
-    next();
+  next();
   }
 });
 
@@ -213,23 +213,23 @@ if (process.env.NODE_ENV === 'production') {
   app.use(createSessionMiddleware());
 } else {
   // Use express-session with SQLite store for development
-  app.use(session({
-    store: new SQLiteStore({
-      db: 'sessions.db',
+app.use(session({
+  store: new SQLiteStore({
+    db: 'sessions.db',
       dir: './',
-      table: 'sessions'
-    }),
-    secret: process.env.SECRET_KEY || 'dev-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { 
+    table: 'sessions'
+  }),
+  secret: process.env.SECRET_KEY || 'dev-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
       secure: false,
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
-    },
-    name: 'keepalleytrash.sid'
-  }));
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax'
+  },
+  name: 'keepalleytrash.sid'
+}));
 }
 
 // Handlebars setup with helpers
@@ -327,8 +327,8 @@ console.log("SECRET_KEY:", process.env.SECRET_KEY ? "set" : "missing");
 
 // Health check route that always responds
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
+  res.json({ 
+    status: 'ok', 
     node_env: process.env.NODE_ENV,
     supabase_url: process.env.SUPABASE_URL ? 'set' : 'missing',
     supabase_anon_key: process.env.SUPABASE_ANON_KEY ? 'set' : 'missing',
@@ -522,30 +522,30 @@ app.post('/register', [
   }
 
   try {
-    // Use transaction to ensure both user creation and newsletter subscription succeed or fail together
-    db.serialize(() => {
-      db.run('BEGIN TRANSACTION');
-      
-      // Create user
-      db.run(`INSERT INTO users (username, email, password_hash, neighborhood) VALUES (?, ?, ?, ?)`,
-        [username, email, passwordHash, neighborhood],
+  // Use transaction to ensure both user creation and newsletter subscription succeed or fail together
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+    
+    // Create user
+    db.run(`INSERT INTO users (username, email, password_hash, neighborhood) VALUES (?, ?, ?, ?)`,
+      [username, email, passwordHash, neighborhood],
         async function(err) {
-          if (err) {
-            db.run('ROLLBACK');
-            if (err.message.includes('UNIQUE constraint failed')) {
-              return res.render('register', { 
-                user: req.session.user, 
-                errors: [{ msg: 'Username or email already exists' }],
-                formData: req.body 
-              });
-            }
+        if (err) {
+          db.run('ROLLBACK');
+          if (err.message.includes('UNIQUE constraint failed')) {
             return res.render('register', { 
               user: req.session.user, 
-              errors: [{ msg: 'Registration failed' }],
+              errors: [{ msg: 'Username or email already exists' }],
               formData: req.body 
             });
           }
-          
+          return res.render('register', { 
+            user: req.session.user, 
+            errors: [{ msg: 'Registration failed' }],
+            formData: req.body 
+          });
+        }
+        
           // Automatically subscribe to newsletter via Supabase
           try {
             const newsletterResult = await supabaseHelpers.subscribeToNewsletter(email);
@@ -558,24 +558,24 @@ app.post('/register', [
           } catch (newsletterError) {
             console.error('Error subscribing to newsletter via Supabase:', newsletterError);
             // Don't fail registration if newsletter subscription fails
-          }
-          
-          db.run('COMMIT', (err) => {
-            if (err) {
-              console.error('Error committing transaction:', err);
-              db.run('ROLLBACK');
-              return res.render('register', { 
-                user: req.session.user, 
-                errors: [{ msg: 'Registration failed' }],
-                formData: req.body 
-              });
             }
-            console.log('User registered successfully:', username);
-            res.redirect('/login');
-          });
-        }
-      );
-    });
+            
+            db.run('COMMIT', (err) => {
+              if (err) {
+                console.error('Error committing transaction:', err);
+                db.run('ROLLBACK');
+                return res.render('register', { 
+                  user: req.session.user, 
+                  errors: [{ msg: 'Registration failed' }],
+                  formData: req.body 
+                });
+              }
+              console.log('User registered successfully:', username);
+              res.redirect('/login');
+            });
+      }
+    );
+  });
   } catch (error) {
     console.error('Error in registration process:', error);
     res.render('register', { 
@@ -809,6 +809,19 @@ app.get('/considerations', (req, res) => {
   }
 });
 
+app.get('/council-report', (req, res) => {
+  try {
+    res.render('council-report', { user: req.session ? req.session.user : null });
+  } catch (error) {
+    console.error('Error rendering council report page:', error);
+    res.status(500).render('errors/error', { 
+      user: req.session ? req.session.user : null,
+      error_code: 500, 
+      error_message: "Error loading council report page" 
+    });
+  }
+});
+
 app.get('/guidelines', (req, res) => {
   res.render('guidelines', { 
     user: req.session ? req.session.user : null,
@@ -971,31 +984,31 @@ app.post('/contact', [
             }
           }
         );
-      });
-    }
+        });
+      }
 
-    // Send email notification if configured
-    if (transporter) {
-      const mailOptions = {
-        from: email,
-        to: 'info@saappo.com',
-        subject: `New Contact Form Submission: ${subject}`,
-        text: `
-          Name: ${name}
-          Email: ${email}
-          Subject: ${subject}
-          Message: ${message}
-        `
-      };
+      // Send email notification if configured
+      if (transporter) {
+        const mailOptions = {
+          from: email,
+          to: 'info@saappo.com',
+          subject: `New Contact Form Submission: ${subject}`,
+          text: `
+            Name: ${name}
+            Email: ${email}
+            Subject: ${subject}
+            Message: ${message}
+          `
+        };
 
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error('Email sending failed:', error);
-        }
-      });
-    }
+        transporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            console.error('Email sending failed:', error);
+          }
+        });
+      }
 
-    res.redirect('/contact');
+      res.redirect('/contact');
   } catch (error) {
     console.error('Error in contact form submission:', error);
     res.render('contact', { 
@@ -1038,7 +1051,7 @@ app.post('/subscribe', [
           formData: req.body 
         });
       }
-
+      
       if (result.message === 'Email already subscribed') {
         console.log('Email already subscribed to newsletter:', email);
         req.flash = req.flash || {};
@@ -1059,23 +1072,23 @@ app.post('/subscribe', [
               console.error('Error inserting newsletter subscriber:', err);
               reject(err);
             } else {
-              if (this.changes > 0) {
+      if (this.changes > 0) {
                 console.log('New newsletter subscriber added to SQLite:', email);
-                req.flash = req.flash || {};
-                req.flash.success = 'Successfully subscribed to newsletter!';
-              } else {
-                console.log('Email already subscribed to newsletter:', email);
-                req.flash = req.flash || {};
-                req.flash.info = 'This email is already subscribed to our newsletter.';
+        req.flash = req.flash || {};
+        req.flash.success = 'Successfully subscribed to newsletter!';
+      } else {
+        console.log('Email already subscribed to newsletter:', email);
+        req.flash = req.flash || {};
+        req.flash.info = 'This email is already subscribed to our newsletter.';
               }
               resolve();
             }
           }
         );
       });
-    }
-    
-    res.redirect('/home');
+      }
+      
+      res.redirect('/home');
   } catch (error) {
     console.error('Error in newsletter subscription:', error);
     res.render('subscribe', { 
@@ -1103,21 +1116,21 @@ app.get('/admin/dashboard', requireAdmin, (req, res) => {
     });
   } else {
     // Development mode: Use SQLite
-    db.get("SELECT COUNT(*) as count FROM users", (err, usersResult) => {
-      db.get("SELECT COUNT(*) as count FROM posts", (err, postsResult) => {
-        db.get("SELECT COUNT(*) as count FROM suggestions", (err, suggestionsResult) => {
-          db.get("SELECT COUNT(*) as count FROM contacts", (err, contactsResult) => {
-            res.render('admin/dashboard', {
-              user: req.session.user,
-              users_count: usersResult.count,
-              posts_count: postsResult.count,
-              suggestions_count: suggestionsResult.count,
-              contacts_count: contactsResult.count
-            });
+  db.get("SELECT COUNT(*) as count FROM users", (err, usersResult) => {
+    db.get("SELECT COUNT(*) as count FROM posts", (err, postsResult) => {
+      db.get("SELECT COUNT(*) as count FROM suggestions", (err, suggestionsResult) => {
+        db.get("SELECT COUNT(*) as count FROM contacts", (err, contactsResult) => {
+          res.render('admin/dashboard', {
+            user: req.session.user,
+            users_count: usersResult.count,
+            posts_count: postsResult.count,
+            suggestions_count: suggestionsResult.count,
+            contacts_count: contactsResult.count
           });
         });
       });
     });
+  });
   }
 });
 
