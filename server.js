@@ -189,6 +189,7 @@ const dbOperation = (operation) => {
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static('static'));
+app.use('/images', express.static('public/images'));
 app.use(cookieParser());
 
 // Database ready middleware
@@ -396,10 +397,14 @@ app.get('/home', async (req, res) => {
       const postsResult = await supabaseHelpers.getPosts();
       if (postsResult.success) {
         // Transform the data to match the expected format
-        const posts = postsResult.data.map(post => ({
-          ...post,
-          username: post.users?.username || 'Unknown User'
-        }));
+        const posts = postsResult.data.map(post => {
+          const fullUsername = post.users?.username || 'Unknown User';
+          const firstName = fullUsername.split(' ')[0]; // Extract first name only
+          return {
+            ...post,
+            username: firstName
+          };
+        });
         res.render('home', { 
           posts: posts.slice(0, 5), // Limit to 5 posts
           user: req.session ? req.session.user : null
@@ -426,7 +431,12 @@ app.get('/home', async (req, res) => {
       console.error(err);
       posts = [];
     }
-    res.render('home', { posts, user: req.session ? req.session.user : null });
+    // Extract first name from username for development
+    const postsWithFirstName = posts.map(post => ({
+      ...post,
+      username: post.username ? post.username.split(' ')[0] : 'Unknown User'
+    }));
+    res.render('home', { posts: postsWithFirstName, user: req.session ? req.session.user : null });
   });
 });
 
@@ -736,10 +746,14 @@ app.get('/community', async (req, res) => {
       const postsResult = await supabaseHelpers.getPosts();
       if (postsResult.success) {
         // Transform the data to match the expected format
-        const posts = postsResult.data.map(post => ({
-          ...post,
-          username: post.users?.username || 'Unknown User'
-        }));
+        const posts = postsResult.data.map(post => {
+          const fullUsername = post.users?.username || 'Unknown User';
+          const firstName = fullUsername.split(' ')[0]; // Extract first name only
+          return {
+            ...post,
+            username: firstName
+          };
+        });
         res.render('community', { 
           posts: posts,
           user: req.session ? req.session.user : null
@@ -766,7 +780,12 @@ app.get('/community', async (req, res) => {
       console.error(err);
       posts = [];
     }
-    res.render('community', { posts, user: req.session ? req.session.user : null });
+    // Extract first name from username for development
+    const postsWithFirstName = posts.map(post => ({
+      ...post,
+      username: post.username ? post.username.split(' ')[0] : 'Unknown User'
+    }));
+    res.render('community', { posts: postsWithFirstName, user: req.session ? req.session.user : null });
   });
 });
 
