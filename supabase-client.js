@@ -176,21 +176,26 @@ const supabaseHelpers = {
     try {
       console.log('Creating post with:', { title, content, category, userId });
       
-      // For now, let's create a post without user_id to test if the table works
+      // Create post with only the columns that exist in your table
       const { data, error } = await supabaseAdmin
         .from('posts')
         .insert([
           {
             title: title,
             content: content,
-            category: category || 'general'
-            // Temporarily removing user_id to test if the table structure is correct
+            user_id: userId
+            // Removed category since it doesn't exist in your table
           }
         ])
         .select();
       
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
       }
       

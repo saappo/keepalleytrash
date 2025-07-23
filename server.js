@@ -852,7 +852,7 @@ app.post('/submit', requireAuth, [
   try {
     if (process.env.NODE_ENV === 'production') {
       // In production, use Supabase
-      const result = await supabaseHelpers.createPost(title, content, category, req.session.userId);
+      const result = await supabaseHelpers.createPost(title, content, null, req.session.userId);
       
       if (!result.success) {
         console.error('Supabase post creation failed:', result.error);
