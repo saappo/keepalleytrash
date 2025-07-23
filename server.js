@@ -837,7 +837,7 @@ app.post('/submit', requireAuth, [
   body('title').notEmpty().withMessage('Title is required'),
   body('content').notEmpty().withMessage('Content is required'),
   body('category').isIn(['general', 'cleanup', 'issue', 'announcement']).withMessage('Invalid category')
-], (req, res) => {
+], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.render('submit', { 
@@ -849,20 +849,47 @@ app.post('/submit', requireAuth, [
 
   const { title, content, category } = req.body;
 
-  db.run(`INSERT INTO posts (title, content, category, user_id) VALUES (?, ?, ?, ?)`,
-    [title, content, category, req.session.userId],
-    function(err) {
-      if (err) {
-        console.error(err);
+  try {
+    if (process.env.NODE_ENV === 'production') {
+      // In production, use Supabase
+      const result = await supabaseHelpers.createPost(title, content, category, req.session.userId);
+      
+      if (!result.success) {
+        console.error('Supabase post creation failed:', result.error);
         return res.render('submit', { 
           user: req.session.user, 
-          errors: [{ msg: 'Failed to create post' }],
+          errors: [{ msg: 'Failed to create post. Please try again.' }],
           formData: req.body 
         });
       }
+
+      console.log('Post created in Supabase successfully');
       res.redirect('/community');
+    } else {
+      // Development: Use SQLite
+      db.run(`INSERT INTO posts (title, content, category, user_id) VALUES (?, ?, ?, ?)`,
+        [title, content, category, req.session.userId],
+        function(err) {
+          if (err) {
+            console.error(err);
+            return res.render('submit', { 
+              user: req.session.user, 
+              errors: [{ msg: 'Failed to create post' }],
+              formData: req.body 
+            });
+          }
+          res.redirect('/community');
+        }
+      );
     }
-  );
+  } catch (error) {
+    console.error('Error in submit route:', error);
+    res.render('submit', { 
+      user: req.session.user, 
+      errors: [{ msg: 'An error occurred. Please try again.' }],
+      formData: req.body 
+    });
+  }
 });
 
 app.get('/suggestions', (req, res) => {

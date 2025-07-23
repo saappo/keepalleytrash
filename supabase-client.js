@@ -170,6 +170,29 @@ const supabaseHelpers = {
       console.error('Error fetching posts:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  async createPost(title, content, category, userId) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('posts')
+        .insert([
+          {
+            title: title,
+            content: content,
+            category: category,
+            user_id: userId,
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select();
+      
+      if (error) throw error;
+      return { success: true, data: data[0] };
+    } catch (error) {
+      console.error('Error creating post:', error);
+      return { success: false, error: error.message };
+    }
   }
 };
 
