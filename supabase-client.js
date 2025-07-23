@@ -176,15 +176,15 @@ const supabaseHelpers = {
     try {
       console.log('Creating post with:', { title, content, category, userId });
       
+      // For now, let's create a post without user_id to test if the table works
       const { data, error } = await supabaseAdmin
         .from('posts')
         .insert([
           {
             title: title,
             content: content,
-            category: category || 'general',
-            user_id: userId
-            // created_at will be set automatically by the database
+            category: category || 'general'
+            // Temporarily removing user_id to test if the table structure is correct
           }
         ])
         .select();
