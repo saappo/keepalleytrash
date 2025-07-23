@@ -174,20 +174,27 @@ const supabaseHelpers = {
 
   async createPost(title, content, category, userId) {
     try {
+      console.log('Creating post with:', { title, content, category, userId });
+      
       const { data, error } = await supabaseAdmin
         .from('posts')
         .insert([
           {
             title: title,
             content: content,
-            category: category,
-            user_id: userId,
-            created_at: new Date().toISOString()
+            category: category || 'general',
+            user_id: userId
+            // created_at will be set automatically by the database
           }
         ])
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Post created successfully:', data);
       return { success: true, data: data[0] };
     } catch (error) {
       console.error('Error creating post:', error);
