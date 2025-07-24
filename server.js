@@ -399,10 +399,13 @@ app.get('/home', async (req, res) => {
         // Transform the data to match the expected format
         const posts = postsResult.data.map(post => {
           const fullUsername = post.users?.username || 'Unknown User';
-          const firstName = fullUsername.split(' ')[0]; // Extract first name only
+          const nameParts = fullUsername.split(' ');
+          const firstName = nameParts[0];
+          const lastInitial = nameParts.length > 1 ? nameParts[nameParts.length - 1].charAt(0) + '.' : '';
+          const displayName = lastInitial ? `${firstName} ${lastInitial}` : firstName;
           return {
             ...post,
-            username: firstName
+            username: displayName
           };
         });
         res.render('home', { 
@@ -431,11 +434,29 @@ app.get('/home', async (req, res) => {
       console.error(err);
       posts = [];
     }
-    // Extract first name from username for development
-    const postsWithFirstName = posts.map(post => ({
-      ...post,
-      username: post.username ? post.username.split(' ')[0] : 'Unknown User'
-    }));
+    // Extract first name and last initial from username for development
+    const postsWithFirstName = posts.map(post => {
+      if (!post.username) return { ...post, username: 'Unknown User' };
+      
+      // Handle email addresses - extract username part before @
+      if (post.username.includes('@')) {
+        const emailUsername = post.username.split('@')[0];
+        return {
+          ...post,
+          username: emailUsername
+        };
+      }
+      
+      // Handle regular names
+      const nameParts = post.username.split(' ');
+      const firstName = nameParts[0];
+      const lastInitial = nameParts.length > 1 ? nameParts[nameParts.length - 1].charAt(0) + '.' : '';
+      const displayName = lastInitial ? `${firstName} ${lastInitial}` : firstName;
+      return {
+        ...post,
+        username: displayName
+      };
+    });
     res.render('home', { posts: postsWithFirstName, user: req.session ? req.session.user : null });
   });
 });
@@ -748,10 +769,13 @@ app.get('/community', async (req, res) => {
         // Transform the data to match the expected format
         const posts = postsResult.data.map(post => {
           const fullUsername = post.users?.username || 'Unknown User';
-          const firstName = fullUsername.split(' ')[0]; // Extract first name only
+          const nameParts = fullUsername.split(' ');
+          const firstName = nameParts[0];
+          const lastInitial = nameParts.length > 1 ? nameParts[nameParts.length - 1].charAt(0) + '.' : '';
+          const displayName = lastInitial ? `${firstName} ${lastInitial}` : firstName;
           return {
             ...post,
-            username: firstName
+            username: displayName
           };
         });
         res.render('community', { 
@@ -780,11 +804,29 @@ app.get('/community', async (req, res) => {
       console.error(err);
       posts = [];
     }
-    // Extract first name from username for development
-    const postsWithFirstName = posts.map(post => ({
-      ...post,
-      username: post.username ? post.username.split(' ')[0] : 'Unknown User'
-    }));
+    // Extract first name and last initial from username for development
+    const postsWithFirstName = posts.map(post => {
+      if (!post.username) return { ...post, username: 'Unknown User' };
+      
+      // Handle email addresses - extract username part before @
+      if (post.username.includes('@')) {
+        const emailUsername = post.username.split('@')[0];
+        return {
+          ...post,
+          username: emailUsername
+        };
+      }
+      
+      // Handle regular names
+      const nameParts = post.username.split(' ');
+      const firstName = nameParts[0];
+      const lastInitial = nameParts.length > 1 ? nameParts[nameParts.length - 1].charAt(0) + '.' : '';
+      const displayName = lastInitial ? `${firstName} ${lastInitial}` : firstName;
+      return {
+        ...post,
+        username: displayName
+      };
+    });
     res.render('community', { posts: postsWithFirstName, user: req.session ? req.session.user : null });
   });
 });
@@ -886,20 +928,20 @@ app.post('/submit', requireAuth, [
       res.redirect('/community');
     } else {
       // Development: Use SQLite
-      db.run(`INSERT INTO posts (title, content, category, user_id) VALUES (?, ?, ?, ?)`,
-        [title, content, category, req.session.userId],
-        function(err) {
-          if (err) {
-            console.error(err);
-            return res.render('submit', { 
-              user: req.session.user, 
-              errors: [{ msg: 'Failed to create post' }],
-              formData: req.body 
-            });
-          }
-          res.redirect('/community');
-        }
-      );
+  db.run(`INSERT INTO posts (title, content, category, user_id) VALUES (?, ?, ?, ?)`,
+    [title, content, category, req.session.userId],
+    function(err) {
+      if (err) {
+        console.error(err);
+        return res.render('submit', { 
+          user: req.session.user, 
+          errors: [{ msg: 'Failed to create post' }],
+          formData: req.body 
+        });
+      }
+      res.redirect('/community');
+    }
+  );
     }
   } catch (error) {
     console.error('Error in submit route:', error);
