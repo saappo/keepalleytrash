@@ -404,7 +404,7 @@ app.get('/home', async (req, res) => {
           if (fullUsername.includes('@')) {
             const emailUsername = fullUsername.split('@')[0];
             return {
-              ...post,
+          ...post,
               username: emailUsername
             };
           }
@@ -785,7 +785,7 @@ app.get('/community', async (req, res) => {
           if (fullUsername.includes('@')) {
             const emailUsername = fullUsername.split('@')[0];
             return {
-              ...post,
+          ...post,
               username: emailUsername
             };
           }
@@ -1254,9 +1254,9 @@ app.get('/admin/posts', requireAdmin, (req, res) => {
   });
 });
 
-// Setup newsletter routes
-const { setupNewsletterRoutes } = require('./newsletter-admin');
-setupNewsletterRoutes(app);
+// Newsletter routes temporarily disabled to fix deployment issues
+// const { setupNewsletterRoutes } = require('./newsletter-admin');
+// setupNewsletterRoutes(app);
 
 // Error handlers
 app.use((req, res) => {
