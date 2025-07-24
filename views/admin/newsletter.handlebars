@@ -1,0 +1,205 @@
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h2 mb-0">Newsletter Management</h1>
+                <a href="/admin/dashboard" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Newsletter Actions -->
+    <div class="row mb-5">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-eye fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Preview Newsletter</h5>
+                    <p class="card-text">See how the newsletter will look before sending</p>
+                    <a href="/admin/newsletter/preview" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-eye me-2"></i>Preview
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
+                    <h5 class="card-title">Download PDF</h5>
+                    <p class="card-text">Generate and download the newsletter as PDF</p>
+                    <a href="/admin/newsletter/pdf" class="btn btn-danger">
+                        <i class="fas fa-download me-2"></i>Download PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-paper-plane fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Send Newsletter</h5>
+                    <p class="card-text">Send the newsletter to all subscribers</p>
+                    <button id="sendNewsletterBtn" class="btn btn-success">
+                        <i class="fas fa-paper-plane me-2"></i>Send to {{subscribers.length}} Subscribers
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscribers List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Newsletter Subscribers ({{subscribers.length}})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {{#if subscribers.length}}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Email</th>
+                                        <th>Subscribed Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{#each subscribers}}
+                                    <tr>
+                                        <td>{{email}}</td>
+                                        <td>{{formatDate created_at}}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="removeSubscriber('{{email}}')">
+                                                <i class="fas fa-trash me-1"></i>Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {{/each}}
+                                </tbody>
+                            </table>
+                        </div>
+                    {{else}}
+                        <div class="text-center py-4">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No subscribers yet</p>
+                        </div>
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Send Newsletter Modal -->
+<div class="modal fade" id="sendNewsletterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Send Newsletter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to send the newsletter to <strong>{{subscribers.length}} subscribers</strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    This action cannot be undone. Make sure to preview the newsletter first.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmSendBtn">
+                    <i class="fas fa-paper-plane me-2"></i>Send Newsletter
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('sendNewsletterBtn').addEventListener('click', function() {
+    const modal = new bootstrap.Modal(document.getElementById('sendNewsletterModal'));
+    modal.show();
+});
+
+document.getElementById('confirmSendBtn').addEventListener('click', async function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+        
+        const response = await fetch('/admin/newsletter/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', 'Newsletter sent successfully!');
+            bootstrap.Modal.getInstance(document.getElementById('sendNewsletterModal')).hide();
+        } else {
+            showAlert('danger', 'Failed to send newsletter: ' + result.error);
+        }
+    } catch (error) {
+        showAlert('danger', 'Error sending newsletter: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.row'));
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+async function removeSubscriber(email) {
+    if (!confirm(`Are you sure you want to remove ${email} from the newsletter list?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/newsletter/unsubscribe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            location.reload();
+        } else {
+            showAlert('danger', 'Failed to remove subscriber: ' + result.error);
+        }
+    } catch (error) {
+        showAlert('danger', 'Error removing subscriber: ' + error.message);
+    }
+}
+</script> 

@@ -1254,6 +1254,10 @@ app.get('/admin/posts', requireAdmin, (req, res) => {
   });
 });
 
+// Setup newsletter routes
+const { setupNewsletterRoutes } = require('./newsletter-admin');
+setupNewsletterRoutes(app);
+
 // Error handlers
 app.use((req, res) => {
   res.status(404).render('errors/error', { 
