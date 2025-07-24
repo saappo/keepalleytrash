@@ -23,7 +23,7 @@ class NewsletterHTMLGenerator {
     const councilMembers = [
       { name: "District 9 - Paula Blackmon", status: "waffling", votes: "Needs Action" },
       { name: "District 10 - Kathy Stewart", status: "shameful", votes: "Major Disappointment" },
-      { name: "District 11 - Jaynie Schultz", status: "victory", votes: "Standing Strong" },
+      { name: "District 11 - William Roth", status: "victory", votes: "Standing Strong" },
       { name: "District 13 - Gay Donnell Willis", status: "misguided", votes: "Poor Performance" }
     ];
 
