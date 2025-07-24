@@ -399,6 +399,17 @@ app.get('/home', async (req, res) => {
         // Transform the data to match the expected format
         const posts = postsResult.data.map(post => {
           const fullUsername = post.users?.username || 'Unknown User';
+          
+          // Handle email addresses - extract username part before @
+          if (fullUsername.includes('@')) {
+            const emailUsername = fullUsername.split('@')[0];
+            return {
+              ...post,
+              username: emailUsername
+            };
+          }
+          
+          // Handle regular names
           const nameParts = fullUsername.split(' ');
           const firstName = nameParts[0];
           const lastInitial = nameParts.length > 1 ? nameParts[nameParts.length - 1].charAt(0) + '.' : '';
@@ -769,6 +780,17 @@ app.get('/community', async (req, res) => {
         // Transform the data to match the expected format
         const posts = postsResult.data.map(post => {
           const fullUsername = post.users?.username || 'Unknown User';
+          
+          // Handle email addresses - extract username part before @
+          if (fullUsername.includes('@')) {
+            const emailUsername = fullUsername.split('@')[0];
+            return {
+              ...post,
+              username: emailUsername
+            };
+          }
+          
+          // Handle regular names
           const nameParts = fullUsername.split(' ');
           const firstName = nameParts[0];
           const lastInitial = nameParts.length > 1 ? nameParts[nameParts.length - 1].charAt(0) + '.' : '';
