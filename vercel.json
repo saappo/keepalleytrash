@@ -8,6 +8,7 @@
     { "src": "/images/(.*)", "dest": "/public/images/$1" },
     { "src": "/css/(.*)", "dest": "/static/css/$1" },
     { "src": "/js/(.*)", "dest": "/static/js/$1" },
+    { "src": "/powered_by_saappo.png", "dest": "/public/powered_by_saappo.png" },
     { "src": "/(.*)", "dest": "/server.js" }
   ]
 } 
