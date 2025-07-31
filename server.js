@@ -190,6 +190,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static('static'));
 app.use('/images', express.static('public/images'));
+app.use(express.static('public'));
 app.use(cookieParser());
 
 // Database ready middleware
@@ -1182,23 +1183,23 @@ app.post('/subscribe', [
               console.error('Error inserting newsletter subscriber:', err);
               reject(err);
             } else {
-      if (this.changes > 0) {
+              if (this.changes > 0) {
                 console.log('New newsletter subscriber added to SQLite:', email);
-        req.flash = req.flash || {};
-        req.flash.success = 'Successfully subscribed to newsletter!';
-      } else {
-        console.log('Email already subscribed to newsletter:', email);
-        req.flash = req.flash || {};
-        req.flash.info = 'This email is already subscribed to our newsletter.';
+                req.flash = req.flash || {};
+                req.flash.success = 'Successfully subscribed to newsletter!';
+              } else {
+                console.log('Email already subscribed to newsletter:', email);
+                req.flash = req.flash || {};
+                req.flash.info = 'This email is already subscribed to our newsletter.';
               }
               resolve();
             }
           }
         );
       });
-      }
-      
-      res.redirect('/home');
+    }
+    
+    res.redirect('/home');
   } catch (error) {
     console.error('Error in newsletter subscription:', error);
     res.render('subscribe', { 
