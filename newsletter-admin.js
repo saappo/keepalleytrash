@@ -49,10 +49,10 @@ function setupNewsletterRoutes(app) {
       const generator = new NewsletterGenerator();
       
       // Check if email is configured
-      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      if (!process.env.ZOHO_EMAIL_USER || !process.env.ZOHO_EMAIL_PASSWORD) {
         return res.status(500).json({
           success: false,
-          error: 'Email configuration missing. Please set EMAIL_USER and EMAIL_PASSWORD environment variables.'
+          error: 'Zoho email configuration missing. Please set ZOHO_EMAIL_USER and ZOHO_EMAIL_PASSWORD environment variables.'
         });
       }
       

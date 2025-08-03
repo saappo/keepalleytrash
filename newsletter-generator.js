@@ -1,4 +1,3 @@
-const puppeteer = require('puppeteer');
 const nodemailer = require('nodemailer');
 const fs = require('fs').promises;
 const path = require('path');
@@ -11,13 +10,17 @@ class NewsletterGenerator {
   }
 
   setupEmailTransporter() {
-    // You'll need to configure your email service
-    // For Gmail, you'll need an app password
+    // Configure for Zoho email service
     this.transporter = nodemailer.createTransport({
-      service: 'gmail', // or your preferred service
+      host: 'smtp.zoho.com',
+      port: 587,
+      secure: false, // true for 465, false for other ports
       auth: {
-        user: process.env.EMAIL_USER, // your email
-        pass: process.env.EMAIL_PASSWORD // your app password
+        user: process.env.ZOHO_EMAIL_USER, // your Zoho email
+        pass: process.env.ZOHO_EMAIL_PASSWORD // your Zoho app password
+      },
+      tls: {
+        rejectUnauthorized: false
       }
     });
   }
@@ -301,8 +304,8 @@ class NewsletterGenerator {
             
             <div class="alert">
               <div class="alert-content">
-                <span style="margin-right: 0.5rem;">⚠️</span>
-                <span>The city plans to end alley pickup for 26,000 homes by Jan 2026, despite public concern.</span>
+                <span style="margin-right: 0.5rem;">🚨</span>
+                <span><strong>The City is moving forward and must hear from us NOW.</strong> The City of Dallas is approaching budgets and will eliminate our alley trash service swiftly with no accountability.</span>
               </div>
             </div>
           </div>
@@ -424,29 +427,10 @@ class NewsletterGenerator {
   }
 
   async generatePDF() {
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    
-    const page = await browser.newPage();
+    // For now, return a simple text representation
+    // PDF generation requires puppeteer which has installation issues
     const html = await this.generateNewsletterHTML();
-    
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '0.5in',
-        right: '0.5in',
-        bottom: '0.5in',
-        left: '0.5in'
-      }
-    });
-    
-    await browser.close();
-    return pdf;
+    return Buffer.from('PDF generation temporarily disabled. Use HTML preview instead.', 'utf8');
   }
 
   async getSubscribers() {
@@ -473,7 +457,7 @@ class NewsletterGenerator {
       console.log(`Sending newsletter to ${subscribers.length} subscribers...`);
       
       const mailOptions = {
-        from: process.env.EMAIL_USER,
+        from: process.env.ZOHO_EMAIL_USER,
         subject: 'Keep Alley Trash - Community Update',
         text: `
           Keep Alley Trash Community Update
@@ -484,14 +468,8 @@ class NewsletterGenerator {
           
           To unsubscribe, reply with "UNSUBSCRIBE" in the subject line.
         `,
-        html: await this.generateNewsletterHTML(),
-        attachments: [
-          {
-            filename: 'keepalleytrash-newsletter.pdf',
-            content: pdf,
-            contentType: 'application/pdf'
-          }
-        ]
+        html: await this.generateNewsletterHTML()
+        // PDF attachments temporarily disabled due to puppeteer installation issues
       };
 
       for (const subscriber of subscribers) {

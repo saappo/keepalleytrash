@@ -1256,8 +1256,22 @@ app.get('/admin/posts', requireAdmin, (req, res) => {
 });
 
 // Newsletter routes temporarily disabled to fix deployment issues
-// const { setupNewsletterRoutes } = require('./newsletter-admin');
-// setupNewsletterRoutes(app);
+const { setupNewsletterRoutes } = require('./newsletter-admin');
+setupNewsletterRoutes(app);
+
+// Simple newsletter preview route (no admin required)
+app.get('/newsletter-preview', async (req, res) => {
+  try {
+    const NewsletterGenerator = require('./newsletter-generator');
+    const generator = new NewsletterGenerator();
+    const html = await generator.generateNewsletterHTML();
+    
+    res.send(html);
+  } catch (error) {
+    console.error('Error generating newsletter preview:', error);
+    res.status(500).send('Error generating newsletter preview');
+  }
+});
 
 // Error handlers
 app.use((req, res) => {

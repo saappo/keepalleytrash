@@ -21,17 +21,19 @@ The required packages are already installed:
 
 ### 2. Email Configuration
 
-To send newsletters, you need to configure email settings. Add these environment variables to your `.env` file:
+To send newsletters, you need to configure Zoho email settings. Add these environment variables to your `.env` file:
 
 ```env
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=your-app-password
+ZOHO_EMAIL_USER=your-email@zoho.com
+ZOHO_EMAIL_PASSWORD=your-zoho-app-password
 ```
 
-**For Gmail users:**
-1. Enable 2-factor authentication
-2. Generate an "App Password" in your Google Account settings
-3. Use the app password as `EMAIL_PASSWORD`
+**For Zoho users:**
+1. Log into your Zoho account
+2. Go to Settings → Mail Accounts
+3. Enable SMTP access
+4. Generate an "App Password" for your email account
+5. Use the app password as `ZOHO_EMAIL_PASSWORD`
 
 ### 3. Test the System
 

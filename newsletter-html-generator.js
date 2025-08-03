@@ -280,8 +280,8 @@ class NewsletterHTMLGenerator {
             
             <div class="alert">
               <div class="alert-content">
-                <span style="margin-right: 0.5rem;">⚠️</span>
-                <span>The city plans to end alley pickup for 26,000 homes by Jan 2026, despite public concern.</span>
+                <span style="margin-right: 0.5rem;">🚨</span>
+                <span><strong>The City is moving forward and must hear from us NOW.</strong> The City of Dallas is approaching budgets and will eliminate our alley trash service swiftly with no accountability.</span>
               </div>
             </div>
           </div>
