@@ -44,9 +44,9 @@
                     <i class="fas fa-paper-plane fa-3x text-success mb-3"></i>
                     <h5 class="card-title">Send Newsletter</h5>
                     <p class="card-text">Send the newsletter to all subscribers</p>
-                    <button id="sendNewsletterBtn" class="btn btn-success">
-                        <i class="fas fa-paper-plane me-2"></i>Send to {{subscribers.length}} Subscribers
-                    </button>
+                                         <button id="sendNewsletterBtn" class="btn btn-success" disabled>
+                         <i class="fas fa-paper-plane me-2"></i>Send to <span id="selectedCount">0</span> Subscribers
+                     </button>
                 </div>
             </div>
         </div>
@@ -56,11 +56,19 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="fas fa-users me-2"></i>
                         Newsletter Subscribers ({{subscribers.length}})
                     </h5>
+                    <div>
+                        <button id="selectAllBtn" class="btn btn-sm btn-outline-primary me-2">
+                            <i class="fas fa-check-square me-1"></i>Select All
+                        </button>
+                        <button id="deselectAllBtn" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-square me-1"></i>Deselect All
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     {{#if subscribers.length}}
@@ -68,6 +76,9 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
+                                        <th width="50">
+                                            <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
+                                        </th>
                                         <th>Email</th>
                                         <th>Subscribed Date</th>
                                         <th>Actions</th>
@@ -76,6 +87,10 @@
                                 <tbody>
                                     {{#each subscribers}}
                                     <tr>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input subscriber-checkbox" 
+                                                   value="{{email}}" data-email="{{email}}">
+                                        </td>
                                         <td>{{email}}</td>
                                         <td>{{formatDate created_at}}</td>
                                         <td>
@@ -109,7 +124,17 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to send the newsletter to <strong>{{subscribers.length}} subscribers</strong>?</p>
+                <p>Are you sure you want to send the newsletter to <strong><span id="modalSelectedCount">0</span> selected subscribers</strong>?</p>
+                
+                <div class="mb-3">
+                    <label for="personalNote" class="form-label">
+                        <i class="fas fa-sticky-note me-2"></i>Personal Note (Optional)
+                    </label>
+                    <textarea class="form-control" id="personalNote" rows="3" 
+                              placeholder="Add a personal message to include at the top of the newsletter..."></textarea>
+                    <div class="form-text">This note will appear prominently in the newsletter for all subscribers.</div>
+                </div>
+                
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     This action cannot be undone. Make sure to preview the newsletter first.
@@ -126,7 +151,100 @@
 </div>
 
 <script>
+// Checkbox management
+let selectedSubscribers = [];
+
+function updateSelectedCount() {
+    const count = selectedSubscribers.length;
+    document.getElementById('selectedCount').textContent = count;
+    document.getElementById('modalSelectedCount').textContent = count;
+    
+    const sendBtn = document.getElementById('sendNewsletterBtn');
+    if (count > 0) {
+        sendBtn.disabled = false;
+    } else {
+        sendBtn.disabled = true;
+    }
+}
+
+function updateSelectAllCheckbox() {
+    const checkboxes = document.querySelectorAll('.subscriber-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+    
+    selectAllCheckbox.checked = allChecked;
+    selectAllCheckbox.indeterminate = someChecked && !allChecked;
+}
+
+// Individual checkbox event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.subscriber-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const email = this.value;
+            if (this.checked) {
+                if (!selectedSubscribers.includes(email)) {
+                    selectedSubscribers.push(email);
+                }
+            } else {
+                selectedSubscribers = selectedSubscribers.filter(e => e !== email);
+            }
+            updateSelectedCount();
+            updateSelectAllCheckbox();
+        });
+    });
+    
+    // Select all checkbox
+    document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.subscriber-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+            const email = checkbox.value;
+            if (this.checked) {
+                if (!selectedSubscribers.includes(email)) {
+                    selectedSubscribers.push(email);
+                }
+            } else {
+                selectedSubscribers = selectedSubscribers.filter(e => e !== email);
+            }
+        });
+        updateSelectedCount();
+    });
+    
+    // Select All button
+    document.getElementById('selectAllBtn').addEventListener('click', function() {
+        const checkboxes = document.querySelectorAll('.subscriber-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+            const email = checkbox.value;
+            if (!selectedSubscribers.includes(email)) {
+                selectedSubscribers.push(email);
+            }
+        });
+        document.getElementById('selectAllCheckbox').checked = true;
+        document.getElementById('selectAllCheckbox').indeterminate = false;
+        updateSelectedCount();
+    });
+    
+    // Deselect All button
+    document.getElementById('deselectAllBtn').addEventListener('click', function() {
+        const checkboxes = document.querySelectorAll('.subscriber-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        selectedSubscribers = [];
+        document.getElementById('selectAllCheckbox').checked = false;
+        document.getElementById('selectAllCheckbox').indeterminate = false;
+        updateSelectedCount();
+    });
+});
+
 document.getElementById('sendNewsletterBtn').addEventListener('click', function() {
+    if (selectedSubscribers.length === 0) {
+        showAlert('warning', 'Please select at least one subscriber to send the newsletter to.');
+        return;
+    }
     const modal = new bootstrap.Modal(document.getElementById('sendNewsletterModal'));
     modal.show();
 });
@@ -139,11 +257,17 @@ document.getElementById('confirmSendBtn').addEventListener('click', async functi
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
         
+        const personalNote = document.getElementById('personalNote').value;
+        
         const response = await fetch('/admin/newsletter/send', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ 
+                personalNote,
+                selectedSubscribers: selectedSubscribers
+            })
         });
         
         const result = await response.json();

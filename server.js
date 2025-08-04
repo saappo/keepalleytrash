@@ -214,24 +214,30 @@ if (process.env.NODE_ENV === 'production') {
   // Use custom JWT-based session middleware for Vercel
   app.use(createSessionMiddleware());
 } else {
-  // Use express-session with SQLite store for development
-app.use(session({
-  store: new SQLiteStore({
-    db: 'sessions.db',
-      dir: './',
-    table: 'sessions'
-  }),
-  secret: process.env.SECRET_KEY || 'dev-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
+  // Use express-session with memory store for development
+  app.use(session({
+    secret: process.env.SECRET_KEY || 'dev-secret-key-change-in-production',
+    resave: true,
+    saveUninitialized: true,
+    cookie: { 
       secure: false,
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax'
-  },
-  name: 'keepalleytrash.sid'
-}));
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax'
+    },
+    name: 'keepalleytrash.sid'
+  }));
+  
+  // Debug middleware to log session state
+  app.use((req, res, next) => {
+    console.log('🔍 Session Debug:', {
+      sessionID: req.sessionID,
+      userId: req.session?.userId,
+      isAdmin: req.session?.isAdmin,
+      user: req.session?.user ? 'exists' : 'missing'
+    });
+    next();
+  });
 }
 
 // Handlebars setup with helpers
@@ -294,9 +300,24 @@ const requireAuth = (req, res, next) => {
 };
 
 const requireAdmin = (req, res, next) => {
-  if (req.session.userId && req.session.isAdmin) {
+  console.log('🔍 Admin check - Session data:', {
+    userId: req.session?.userId,
+    user: req.session?.user,
+    isAdmin: req.session?.isAdmin,
+    userIsAdmin: req.session?.user?.isAdmin,
+    userIs_admin: req.session?.user?.is_admin
+  });
+  
+  // Check multiple possible admin flags
+  const isAdmin = req.session?.isAdmin || 
+                  req.session?.user?.isAdmin || 
+                  req.session?.user?.is_admin;
+  
+  if (req.session?.userId && isAdmin) {
+    console.log('✅ Admin access granted');
     next();
   } else {
+    console.log('❌ Admin access denied - redirecting to home');
     res.redirect('/home');
   }
 };
@@ -1252,6 +1273,25 @@ app.get('/admin/posts', requireAdmin, (req, res) => {
       posts = [];
     }
     res.render('admin/posts', { posts, user: req.session ? req.session.user : null });
+  });
+});
+
+// Admin test route
+app.get('/admin-test', (req, res) => {
+  console.log('Admin test route accessed');
+  console.log('Session data:', {
+    userId: req.session?.userId,
+    user: req.session?.user,
+    isAdmin: req.session?.isAdmin
+  });
+  
+  res.json({
+    message: 'Admin test route',
+    session: {
+      userId: req.session?.userId,
+      user: req.session?.user,
+      isAdmin: req.session?.isAdmin
+    }
   });
 });
 

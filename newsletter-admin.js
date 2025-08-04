@@ -43,10 +43,12 @@ function setupNewsletterRoutes(app) {
     }
   });
 
-  // Send newsletter to all subscribers
+  // Send newsletter to selected subscribers
   app.post('/admin/newsletter/send', requireAdmin, async (req, res) => {
     try {
       const generator = new NewsletterGenerator();
+      const personalNote = req.body.personalNote || '';
+      const selectedSubscribers = req.body.selectedSubscribers || [];
       
       // Check if email is configured
       if (!process.env.ZOHO_EMAIL_USER || !process.env.ZOHO_EMAIL_PASSWORD) {
@@ -56,11 +58,15 @@ function setupNewsletterRoutes(app) {
         });
       }
       
-      await generator.sendNewsletter();
+      console.log('Sending newsletter with personal note:', personalNote ? 'Yes' : 'No');
+      console.log('Selected subscribers:', selectedSubscribers.length);
+      
+      const result = await generator.sendNewsletter(personalNote, selectedSubscribers);
       
       res.json({
         success: true,
-        message: 'Newsletter sent successfully to all subscribers'
+        message: `Newsletter sent successfully! Success: ${result.successCount}, Errors: ${result.errorCount}`,
+        details: result
       });
     } catch (error) {
       console.error('Error sending newsletter:', error);
@@ -74,9 +80,31 @@ function setupNewsletterRoutes(app) {
   // Newsletter management dashboard
   app.get('/admin/newsletter', requireAdmin, async (req, res) => {
     try {
-      const { supabaseHelpers } = require('./supabase-client');
-      const subscribersResult = await supabaseHelpers.getNewsletterSubscribers();
-      const subscribers = subscribersResult.data || [];
+      let subscribers = [];
+      
+      if (process.env.NODE_ENV === 'production') {
+        // Use Supabase in production
+        const { supabaseHelpers } = require('./supabase-client');
+        const subscribersResult = await supabaseHelpers.getNewsletterSubscribers();
+        subscribers = subscribersResult.data || [];
+      } else {
+        // Use SQLite in development
+        const sqlite3 = require('sqlite3').verbose();
+        const db = new sqlite3.Database('./keepalleytrash.db');
+        
+        subscribers = await new Promise((resolve, reject) => {
+          db.all("SELECT email, subscribed_at as created_at FROM newsletter_subscribers WHERE is_active = 1", (err, rows) => {
+            db.close();
+            if (err) {
+              console.error('Error getting subscribers from database:', err);
+              reject(err);
+            } else {
+              console.log(`Found ${rows.length} subscribers in database for admin page`);
+              resolve(rows || []);
+            }
+          });
+        });
+      }
       
       res.render('admin/newsletter', {
         user: req.session.user,
@@ -96,9 +124,24 @@ function setupNewsletterRoutes(app) {
 
 // Admin middleware (you already have this in server.js)
 function requireAdmin(req, res, next) {
-  if (req.session.user && req.session.user.is_admin) {
+  console.log('🔍 Newsletter Admin check:', {
+    userId: req.session?.userId,
+    user: req.session?.user,
+    isAdmin: req.session?.isAdmin,
+    userIsAdmin: req.session?.user?.isAdmin,
+    userIs_admin: req.session?.user?.is_admin
+  });
+  
+  // Check multiple possible admin flags
+  const isAdmin = req.session?.isAdmin || 
+                  req.session?.user?.isAdmin || 
+                  req.session?.user?.is_admin;
+  
+  if (req.session?.userId && isAdmin) {
+    console.log('✅ Newsletter Admin access granted');
     next();
   } else {
+    console.log('❌ Newsletter Admin access denied');
     res.status(403).render('errors/error', {
       user: req.session.user,
       error_code: 403,

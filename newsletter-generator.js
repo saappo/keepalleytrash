@@ -10,7 +10,7 @@ class NewsletterGenerator {
   }
 
   setupEmailTransporter() {
-    // Configure for Zoho email service
+    // Configure for Zoho email service with improved deliverability
     this.transporter = nodemailer.createTransport({
       host: 'smtp.zoho.com',
       port: 587,
@@ -21,7 +21,13 @@ class NewsletterGenerator {
       },
       tls: {
         rejectUnauthorized: false
-      }
+      },
+      // Improved deliverability settings
+      pool: true, // Use pooled connections
+      maxConnections: 5, // Limit concurrent connections
+      maxMessages: 100, // Max messages per connection
+      rateLimit: 14, // Max 14 messages per second (Zoho limit)
+      // DKIM and SPF will be handled by Zoho's infrastructure
     });
   }
 
@@ -415,10 +421,18 @@ class NewsletterGenerator {
           <div class="footer">
             <h3>Keep Alley Trash</h3>
             <p>Fighting for practical waste solutions that serve our community.</p>
-            <p style="font-size: 0.875rem; color: #9ca3af;">
-              This newsletter is sent to subscribers of Keep Alley Trash. 
-              To unsubscribe, reply with "UNSUBSCRIBE" in the subject line.
-            </p>
+            <div style="border-top: 1px solid #374151; padding-top: 20px; margin-top: 20px;">
+              <p style="font-size: 0.875rem; color: #9ca3af; margin-bottom: 10px;">
+                This newsletter is sent to subscribers of Keep Alley Trash.
+              </p>
+              <p style="font-size: 0.875rem; color: #9ca3af; margin-bottom: 10px;">
+                📧 <strong>To unsubscribe:</strong> Reply to this email with "UNSUBSCRIBE" in the subject line, 
+                or click <a href="mailto:${process.env.ZOHO_EMAIL_USER}?subject=UNSUBSCRIBE" style="color: #3b82f6;">here</a>.
+              </p>
+              <p style="font-size: 0.875rem; color: #9ca3af;">
+                📍 <strong>Address:</strong> Dallas, TX | 🌐 <strong>Website:</strong> <a href="http://www.keepalleytrash.com" style="color: #3b82f6;">www.keepalleytrash.com</a>
+              </p>
+            </div>
           </div>
         </div>
       </body>
@@ -438,27 +452,74 @@ class NewsletterGenerator {
       const result = await supabaseHelpers.getNewsletterSubscribers();
       return result.data || [];
     } else {
-      // For development, return test emails
-      return [
-        { email: 'test@example.com' },
-        { email: 'admin@keepalleytrash.com' }
-      ];
+      // For development, get subscribers from SQLite database
+      return new Promise((resolve, reject) => {
+        const sqlite3 = require('sqlite3').verbose();
+        const db = new sqlite3.Database('./keepalleytrash.db');
+        
+        db.all("SELECT email, subscribed_at as created_at FROM newsletter_subscribers WHERE is_active = 1", (err, rows) => {
+          db.close();
+          if (err) {
+            console.error('Error getting subscribers from database:', err);
+            reject(err);
+          } else {
+            console.log(`Found ${rows.length} subscribers in database`);
+            resolve(rows || []);
+          }
+        });
+      });
     }
   }
 
-  async sendNewsletter() {
+  async sendNewsletter(personalNote = '', selectedSubscribers = []) {
     try {
-      console.log('Generating newsletter PDF...');
-      const pdf = await this.generatePDF();
+      let subscribers;
       
-      console.log('Getting subscribers...');
-      const subscribers = await this.getSubscribers();
+      if (selectedSubscribers && selectedSubscribers.length > 0) {
+        // Use selected subscribers
+        subscribers = selectedSubscribers.map(email => ({ email }));
+        console.log(`Sending newsletter to ${subscribers.length} selected subscribers:`, selectedSubscribers);
+      } else {
+        // Get all subscribers
+        subscribers = await this.getSubscribers();
+        console.log(`Sending newsletter to ${subscribers.length} subscribers from database...`);
+      }
       
-      console.log(`Sending newsletter to ${subscribers.length} subscribers...`);
+      // Generate HTML content
+      const htmlContent = await this.generateNewsletterHTML();
+      
+      // Add personal note if provided
+      let finalHtml = htmlContent;
+      if (personalNote && personalNote.trim()) {
+        const personalNoteHtml = `
+          <div style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <h4 style="color: #28a745; margin: 0 0 10px 0;">Personal Note from Keep Alley Trash Team:</h4>
+            <p style="margin: 0; color: #495057; font-style: italic;">${personalNote}</p>
+          </div>
+        `;
+        
+        // Insert personal note after the header section
+        const headerEndIndex = finalHtml.indexOf('</div>', finalHtml.indexOf('<div class="header">'));
+        if (headerEndIndex !== -1) {
+          finalHtml = finalHtml.slice(0, headerEndIndex + 6) + personalNoteHtml + finalHtml.slice(headerEndIndex + 6);
+        }
+      }
       
       const mailOptions = {
-        from: process.env.ZOHO_EMAIL_USER,
+        from: {
+          name: 'Keep Alley Trash Team',
+          address: process.env.ZOHO_EMAIL_USER
+        },
+        replyTo: process.env.ZOHO_EMAIL_USER,
         subject: 'Keep Alley Trash - Community Update',
+        // Add headers to improve deliverability
+        headers: {
+          'List-Unsubscribe': `<mailto:${process.env.ZOHO_EMAIL_USER}?subject=UNSUBSCRIBE>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          'Precedence': 'bulk',
+          'X-Auto-Response-Suppress': 'OOF, AutoReply',
+          'X-Mailer': 'Keep Alley Trash Newsletter System'
+        },
         text: `
           Keep Alley Trash Community Update
           
@@ -466,23 +527,48 @@ class NewsletterGenerator {
           
           Visit www.keepalleytrash.com for the latest updates and to take action.
           
+          ${personalNote ? `\nPersonal Note: ${personalNote}\n` : ''}
+          
           To unsubscribe, reply with "UNSUBSCRIBE" in the subject line.
         `,
-        html: await this.generateNewsletterHTML()
-        // PDF attachments temporarily disabled due to puppeteer installation issues
+        html: finalHtml
       };
 
-      for (const subscriber of subscribers) {
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let i = 0; i < subscribers.length; i++) {
+        const subscriber = subscribers[i];
         try {
           mailOptions.to = subscriber.email;
           await this.transporter.sendMail(mailOptions);
-          console.log(`Newsletter sent to ${subscriber.email}`);
+          console.log(`✅ Newsletter sent to ${subscriber.email} (${i + 1}/${subscribers.length})`);
+          successCount++;
+          
+          // Add delay between emails to avoid rate limiting (100ms delay)
+          if (i < subscribers.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
         } catch (error) {
-          console.error(`Failed to send to ${subscriber.email}:`, error.message);
+          console.error(`❌ Failed to send to ${subscriber.email}:`, error.message);
+          errorCount++;
+          
+          // If we hit a rate limit, wait longer
+          if (error.message.includes('rate limit') || error.message.includes('too many requests')) {
+            console.log('⏳ Rate limit detected, waiting 5 seconds...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
         }
       }
       
-      console.log('Newsletter distribution complete!');
+      console.log(`Newsletter distribution complete! Success: ${successCount}, Errors: ${errorCount}`);
+      
+      return {
+        success: true,
+        totalSubscribers: subscribers.length,
+        successCount,
+        errorCount
+      };
     } catch (error) {
       console.error('Error sending newsletter:', error);
       throw error;
