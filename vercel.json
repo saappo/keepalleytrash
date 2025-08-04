@@ -8,7 +8,12 @@
     { "src": "/images/(.*)", "dest": "/public/images/$1" },
     { "src": "/css/(.*)", "dest": "/static/css/$1" },
     { "src": "/js/(.*)", "dest": "/static/js/$1" },
-    { "src": "/powered_by_saappo.png", "dest": "/public/powered_by_saappo.png" },
+    { "src": "/(.*\\.png)", "dest": "/public/$1" },
+    { "src": "/(.*\\.jpg)", "dest": "/public/$1" },
+    { "src": "/(.*\\.jpeg)", "dest": "/public/$1" },
+    { "src": "/(.*\\.gif)", "dest": "/public/$1" },
+    { "src": "/(.*\\.svg)", "dest": "/public/$1" },
+    { "src": "/(.*\\.ico)", "dest": "/public/$1" },
     { "src": "/(.*)", "dest": "/server.js" }
   ]
 } 

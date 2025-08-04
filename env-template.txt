@@ -1,0 +1,21 @@
+# Copy this file to .env and fill in your actual values
+
+# Supabase Configuration
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Application Configuration
+SECRET_KEY=dev-secret-key-change-in-production
+NODE_ENV=development
+PORT=3000
+
+# Email Configuration for Newsletter (REQUIRED for sending emails)
+ZOHO_EMAIL_USER=your-email@zoho.com
+ZOHO_EMAIL_PASSWORD=your-zoho-app-password
+
+# Alternative Gmail Configuration (if not using Zoho)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_email_app_password 

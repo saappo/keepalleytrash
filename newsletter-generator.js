@@ -26,7 +26,7 @@ class NewsletterGenerator {
       pool: true, // Use pooled connections
       maxConnections: 5, // Limit concurrent connections
       maxMessages: 100, // Max messages per connection
-      rateLimit: 14, // Max 14 messages per second (Zoho limit)
+      rateLimit: 5, // Max 5 messages per second (more conservative)
       // DKIM and SPF will be handled by Zoho's infrastructure
     });
   }
@@ -545,10 +545,10 @@ class NewsletterGenerator {
           console.log(`✅ Newsletter sent to ${subscriber.email} (${i + 1}/${subscribers.length})`);
           successCount++;
           
-          // Add delay between emails to avoid rate limiting (100ms delay)
-          if (i < subscribers.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
+                // Add delay between emails to avoid rate limiting (2 second delay)
+      if (i < subscribers.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
         } catch (error) {
           console.error(`❌ Failed to send to ${subscriber.email}:`, error.message);
           errorCount++;
