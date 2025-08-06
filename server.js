@@ -916,7 +916,17 @@ app.get('/considerations', (req, res) => {
 
 app.get('/council-report', (req, res) => {
   try {
-    res.render('council-report', { user: req.session ? req.session.user : null });
+    const { getAllCouncilMembers, validateCouncilData } = require('./council-data');
+    
+    // Validate council data
+    validateCouncilData();
+    
+    const councilMembers = getAllCouncilMembers();
+    
+    res.render('council-report', { 
+      user: req.session ? req.session.user : null,
+      councilMembers: councilMembers
+    });
   } catch (error) {
     console.error('Error rendering council report page:', error);
     res.status(500).render('errors/error', { 
@@ -999,11 +1009,19 @@ app.post('/submit', requireAuth, [
 
 app.get('/suggestions', (req, res) => {
   try {
+    const { getCouncilMembersForSuggestions, validateCouncilData } = require('./council-data');
+    
+    // Validate council data
+    validateCouncilData();
+    
+    const councilMembers = getCouncilMembersForSuggestions();
+    
     if (process.env.NODE_ENV === 'production') {
       // In production, show empty suggestions (no Supabase table for suggestions yet)
       res.render('suggestions', { 
         suggestions: [], 
         user: req.session ? req.session.user : null,
+        councilMembers: councilMembers,
         productionMessage: 'Suggestions feature is currently not available in production.'
       });
       return;
@@ -1011,7 +1029,11 @@ app.get('/suggestions', (req, res) => {
 
     if (!dbReady) {
       // Return empty suggestions instead of error
-      return res.render('suggestions', { suggestions: [], user: req.session ? req.session.user : null });
+      return res.render('suggestions', { 
+        suggestions: [], 
+        user: req.session ? req.session.user : null,
+        councilMembers: councilMembers
+      });
     }
     
     db.all("SELECT s.*, u.username FROM suggestions s JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC", (err, suggestions) => {
@@ -1019,12 +1041,20 @@ app.get('/suggestions', (req, res) => {
         console.error('Database error in suggestions route:', err);
         suggestions = [];
       }
-      res.render('suggestions', { suggestions, user: req.session ? req.session.user : null });
+      res.render('suggestions', { 
+        suggestions, 
+        user: req.session ? req.session.user : null,
+        councilMembers: councilMembers
+      });
     });
   } catch (error) {
     console.error('Error in suggestions route:', error);
     // Return empty suggestions instead of error
-    res.render('suggestions', { suggestions: [], user: req.session ? req.session.user : null });
+    res.render('suggestions', { 
+      suggestions: [], 
+      user: req.session ? req.session.user : null,
+      councilMembers: []
+    });
   }
 });
 

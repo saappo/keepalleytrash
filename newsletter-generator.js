@@ -2,6 +2,7 @@ const nodemailer = require('nodemailer');
 const fs = require('fs').promises;
 const path = require('path');
 const supabaseHelpers = require('./supabase-client');
+const { getNewsletterCouncilMembers, validateCouncilData } = require('./council-data');
 
 class NewsletterGenerator {
   constructor() {
@@ -49,13 +50,13 @@ class NewsletterGenerator {
       ];
     }
 
-    // Get council member data
-    const councilMembers = [
-      { name: "District 9 - Paula Blackmon", status: "waffling", votes: "Needs Action" },
-      { name: "District 10 - Kathy Stewart", status: "shameful", votes: "Major Disappointment" },
-      { name: "District 11 - William Roth", status: "victory", votes: "Standing Strong" },
-      { name: "District 13 - Gay Donnell Willis", status: "misguided", votes: "Poor Performance" }
-    ];
+    // Get council member data from centralized source
+    const councilMembers = getNewsletterCouncilMembers();
+    
+    // Validate council data integrity
+    if (!validateCouncilData()) {
+      console.warn('⚠️ Council data validation failed - using data anyway but please check council-data.js');
+    }
 
     const actionItems = [
       { text: "Sign the petition at change.org", urgent: true },
