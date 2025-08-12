@@ -245,6 +245,7 @@ app.engine('handlebars', exphbs.engine({
   defaultLayout: 'main',
   layoutsDir: path.join(__dirname, 'views/layouts'),
   partialsDir: path.join(__dirname, 'views/partials'),
+  cache: false, // Disable view caching in development
   helpers: {
     eq: function (a, b) {
       return a === b;
@@ -287,6 +288,12 @@ app.engine('handlebars', exphbs.engine({
 }));
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'views'));
+
+// Disable view caching in development
+if (process.env.NODE_ENV === 'development') {
+  app.set('view cache', false);
+  console.log('🔧 View caching disabled for development');
+}
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
@@ -897,6 +904,19 @@ app.get('/about', (req, res) => {
       user: req.session ? req.session.user : null,
       error_code: 500, 
       error_message: "Error loading about page" 
+    });
+  }
+});
+
+app.get('/town-hall', (req, res) => {
+  try {
+    res.render('town-hall', { user: req.session ? req.session.user : null });
+  } catch (error) {
+    console.error('Error rendering town hall page:', error);
+    res.status(500).render('errors/error', { 
+      user: req.session ? req.session.user : null,
+      error_code: 500, 
+      error_message: "Error loading town hall page" 
     });
   }
 });
