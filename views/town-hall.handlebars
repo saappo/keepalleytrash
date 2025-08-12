@@ -239,6 +239,26 @@
                                 <strong>Host:</strong> Deputy Mayor Pro Tem Gay Donnell Willis
                             </div>
                         </div>
+                        
+                        <!-- District 10 Town Hall -->
+                        <div id="announcement-district10-budget" class="announcement-card warning-announcement">
+                            <button class="dismiss-btn" data-dismiss-announcement="announcement-district10-budget" aria-label="Dismiss announcement">
+                                ×
+                            </button>
+                            <div class="announcement-content">
+                                ⚠️ <strong>MUST ATTEND: District 10 Budget Town Hall</strong>
+                                <br>
+                                <strong>Tuesday, August 26 • 6:00 PM - 7:00 PM</strong>
+                                <br>
+                                <strong>Location:</strong> Willie B Johnson Recreation Center, 12225 Willowdell Dr, Dallas, TX 75243
+                                <br>
+                                <strong>Council Member:</strong> Kathy Stewart
+                                <br><br>
+                                <strong>Event Type:</strong> Free Event • Town Hall
+                                <br><br>
+                                Join Council Member Kathy Stewart for this important budget discussion. Your voice matters in shaping District 10's priorities for the upcoming fiscal year.
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- General Meeting Info -->
@@ -257,9 +277,76 @@
                     </div>
                     
                     <div class="text-center mt-4">
-                        <a href="/suggestions" class="btn btn-danger btn-lg">
+                        <a href="/suggestions" class="btn btn-danger btn-lg me-3">
                             <i class="fas fa-lightbulb me-2"></i>Get Involved - See What You Can Do
                         </a>
+                        <a href="https://dallascityhall.com/calendar/Pages/default.aspx" target="_blank" class="btn btn-outline-danger btn-lg">
+                            <i class="fas fa-calendar me-2"></i>View All City Events & Meetings
+                        </a>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-4">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h6 class="mb-2">
+                                    <i class="fas fa-calendar-alt me-2"></i>Looking for More Town Hall Meetings?
+                                </h6>
+                                <p class="mb-0">Check the <a href="https://dallascityhall.com/calendar/Pages/default.aspx" target="_blank" class="alert-link">official City of Dallas Calendar</a> for all upcoming public meetings, town halls, and city events.</p>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <a href="https://dallascityhall.com/calendar/Pages/default.aspx" target="_blank" class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-external-link-alt me-1"></i>City Calendar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+
+            <!-- Speaker Registration Section -->
+            <div class="card shadow mb-5">
+                <div class="card-header bg-warning text-dark">
+                    <h3 class="mb-0">
+                        <a href="https://dallascityhall.com/government/citysecretary/Pages/CCrules.aspx" target="_blank" class="text-dark text-decoration-none">
+                            <i class="fas fa-microphone me-2"></i>Speak at City Council Meetings
+                        </a>
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>Make Your Voice Heard at City Hall
+                        </h5>
+                        <p class="mb-3">The Dallas City Council holds regular meetings where citizens can address the council directly. This is your opportunity to speak up about Keep Alley Trash and other important city issues.</p>
+                        <p class="mb-3"><strong>Please sign up to speak on Keep Alley Trash's behalf at:</strong></p>
+                        <div class="text-center">
+                            <a href="https://dallascityhall.com/government/citysecretary/Pages/CCrules.aspx" target="_blank" class="btn btn-warning btn-lg">
+                                <i class="fas fa-external-link-alt me-2"></i>Dallas City Council Speaker Registration
+                            </a>
+                        </div>
+                        <hr>
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-clock me-2"></i>Registration Deadlines:</h6>
+                                <ul class="list-unstyled">
+                                    <li>• Opens: 8:15 AM the next business day after previous meeting</li>
+                                    <li>• Closes: 5:00 PM the last business day before the meeting</li>
+                                    <li>• You can register online, by phone, or by email</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-phone me-2"></i>Contact Information:</h6>
+                                <ul class="list-unstyled">
+                                    <li>• Phone: (214) 670-3738</li>
+                                    <li>• Email: secspeakerrequest@dallas.gov</li>
+                                    <li>• Online: Use the button above</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -372,7 +459,10 @@ function dismissAnnouncement(announcementId) {
     
     const element = document.getElementById(announcementId);
     if (element) {
-        element.style.display = 'none';
+        // Hide the announcement after 120 seconds (2 minutes) instead of immediately
+        setTimeout(() => {
+            element.style.display = 'none';
+        }, 120000); // 120 seconds = 2 minutes
     }
 }
 
@@ -405,5 +495,13 @@ window.addEventListener('load', function() {
             }
         });
     });
+    
+    // Auto-hide all announcements after 120 seconds (2 minutes)
+    setTimeout(() => {
+        console.log('Auto-hiding all announcements after 120 seconds');
+        document.querySelectorAll('.announcement-card').forEach(announcement => {
+            announcement.style.display = 'none';
+        });
+    }, 120000); // 120 seconds = 2 minutes
 });
 </script>
